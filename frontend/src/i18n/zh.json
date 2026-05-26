@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "feed": "动态",
+    "create": "创建",
+    "profile": "个人资料",
+    "login": "登录",
+    "logout": "退出"
+  },
+  "feed": {
+    "empty": "暂无表情包。来创建第一个吧！",
+    "loading": "加载中...",
+    "load_more": "加载更多"
+  },
+  "editor": {
+    "generate": "生成",
+    "prompt_placeholder": "描述你的表情包创意...",
+    "upload_image": "上传图片",
+    "choose_template": "选择模板",
+    "add_caption": "添加文字",
+    "publish": "发布",
+    "generating": "生成中...",
+    "caption_suggestion": "文字建议"
+  },
+  "auth": {
+    "sign_in_google": "使用 Google 登录",
+    "sign_in_email": "使用邮箱登录",
+    "email": "邮箱",
+    "password": "密码",
+    "no_account": "没有账号？立即注册",
+    "have_account": "已有账号？立即登录"
+  },
+  "errors": {
+    "generic": "出错了，请重试。",
+    "upload_failed": "上传失败，请重试。",
+    "generate_failed": "表情包生成失败，请重试。",
+    "auth_failed": "身份验证失败，请重试。"
+  }
+}

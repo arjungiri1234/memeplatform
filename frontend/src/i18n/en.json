@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "feed": "Feed",
+    "create": "Create",
+    "profile": "Profile",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "feed": {
+    "empty": "No memes yet. Be the first to create one!",
+    "loading": "Loading memes...",
+    "load_more": "Load more"
+  },
+  "editor": {
+    "generate": "Generate",
+    "prompt_placeholder": "Describe your meme idea...",
+    "upload_image": "Upload image",
+    "choose_template": "Choose template",
+    "add_caption": "Add caption",
+    "publish": "Publish",
+    "generating": "Generating...",
+    "caption_suggestion": "Caption suggestion"
+  },
+  "auth": {
+    "sign_in_google": "Sign in with Google",
+    "sign_in_email": "Sign in with Email",
+    "email": "Email",
+    "password": "Password",
+    "no_account": "Don't have an account? Sign up",
+    "have_account": "Already have an account? Sign in"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "upload_failed": "Upload failed. Please try again.",
+    "generate_failed": "Failed to generate meme. Please try again.",
+    "auth_failed": "Authentication failed. Please try again."
+  }
+}
