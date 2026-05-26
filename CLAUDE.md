@@ -490,6 +490,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [ ] Flow B — type prompt → Gemini image + captions → canvas → publish
 - [ ] Konva canvas editor — background + draggable text + Unicode fonts
 - [ ] Template picker — grid, category filter, click to load in editor
+- [x] Feed UI — authenticated mock meme feed layout
 - [ ] Feed page — infinite scroll, cursor pagination, 20 per page
 - [ ] Profile page — user's own memes grid
 - [ ] Language switcher — 5 languages in Navbar dropdown
