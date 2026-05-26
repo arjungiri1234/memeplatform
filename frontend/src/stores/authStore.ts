@@ -1,16 +1,42 @@
 import { create } from 'zustand'
-import type { Profile } from '../lib/types'
+import { persist } from 'zustand/middleware'
+import type { AuthState, Profile } from '../lib/types'
 
-interface AuthState {
-  user: Profile | null
-  isLoading: boolean
-  setUser: (user: Profile | null) => void
+interface AuthActions {
+  setUser: (user: AuthState['user']) => void
+  setProfile: (profile: Profile | null) => void
+  setSession: (session: AuthState['session']) => void
   setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  reset: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+type AuthStore = AuthState & AuthActions
+
+const initialState: AuthState = {
   user: null,
-  isLoading: true,
-  setUser: (user) => set({ user }),
-  setLoading: (isLoading) => set({ isLoading }),
-}))
+  profile: null,
+  session: null,
+  loading: true,
+  error: null,
+}
+
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
+      setUser: (user) => set({ user }),
+      setProfile: (profile) => set({ profile }),
+      setSession: (session) => set({ session }),
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error }),
+      reset: () => set({ ...initialState, loading: false }),
+    }),
+    {
+      name: 'memeit-auth',
+      partialize: (state) => ({
+        session: state.session,
+      }),
+    },
+  ),
+)
