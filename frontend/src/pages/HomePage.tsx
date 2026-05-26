@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import MemeCard, { MemeCardSkeleton } from '../components/MemeCard'
+import { useAuth } from '../hooks/useAuth'
 import { ROUTES } from '../lib/constants'
 
 const LANGUAGE_CARDS = [
@@ -250,7 +253,7 @@ function MarqueeTile({ item }: { item: (typeof MARQUEE_ITEMS)[number] }) {
   )
 }
 
-export default function HomePage() {
+function LandingPage() {
   return (
     <div className="min-h-screen overflow-hidden bg-[#0f0f0f] text-[#e5e2e1]">
       <style>
@@ -483,4 +486,244 @@ export default function HomePage() {
       </footer>
     </div>
   )
+}
+
+type SortMode = 'latest' | 'trending'
+type LanguageFilter = 'all' | 'en' | 'ne' | 'hi' | 'ru' | 'zh'
+
+interface FeedMeme {
+  id: string
+  imageUrl: string
+  title: string | null
+  language: LanguageFilter
+  viewCount: number
+  createdAt: string
+  profile: {
+    username: string
+    avatarUrl: string | null
+  }
+}
+
+const LANGUAGE_FILTERS: Array<{ value: LanguageFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'en', label: 'English' },
+  { value: 'ne', label: 'नेपाली' },
+  { value: 'hi', label: 'हिन्दी' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'zh', label: '中文' },
+]
+
+// TODO: replace with useFeed hook when edge function is ready
+const MOCK_MEMES: FeedMeme[] = [
+  {
+    id: 'mock-1',
+    language: 'ne',
+    title: 'जब सोमबार आउँछ',
+    imageUrl: 'https://picsum.photos/seed/nepal-meme/900/680',
+    viewCount: 234,
+    createdAt: '2025-01-15T10:00:00Z',
+    profile: {
+      username: 'raj_sharma',
+      avatarUrl: null,
+    },
+  },
+  {
+    id: 'mock-2',
+    language: 'hi',
+    title: 'सोमवार की सुबह',
+    imageUrl: 'https://picsum.photos/seed/hindi-meme/900/760',
+    viewCount: 891,
+    createdAt: '2025-01-15T08:00:00Z',
+    profile: {
+      username: 'priya_k',
+      avatarUrl: null,
+    },
+  },
+  {
+    id: 'mock-3',
+    language: 'ru',
+    title: 'Понедельник снова',
+    imageUrl: 'https://picsum.photos/seed/russian-meme/900/620',
+    viewCount: 445,
+    createdAt: '2025-01-14T20:00:00Z',
+    profile: {
+      username: 'ivan_dev',
+      avatarUrl: null,
+    },
+  },
+  {
+    id: 'mock-4',
+    language: 'en',
+    title: 'When the code works',
+    imageUrl: 'https://picsum.photos/seed/code-meme/900/700',
+    viewCount: 1203,
+    createdAt: '2025-01-14T15:00:00Z',
+    profile: {
+      username: 'user_en',
+      avatarUrl: null,
+    },
+  },
+]
+
+function SortBar({
+  sortMode,
+  onSortModeChange,
+  languageFilter,
+  onLanguageFilterChange,
+}: {
+  sortMode: SortMode
+  onSortModeChange: (value: SortMode) => void
+  languageFilter: LanguageFilter
+  onLanguageFilterChange: (value: LanguageFilter) => void
+}) {
+  return (
+    <div className="sticky top-20 z-30 mb-4 border-b border-[#2a2a2a] bg-[#0a0a0a]/95 px-4 py-3 backdrop-blur-[12px] sm:top-20 sm:rounded-[10px] sm:border">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex rounded-full bg-[#111111] p-1">
+          {(['latest', 'trending'] as const).map((mode) => {
+            const isActive = sortMode === mode
+
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onSortModeChange(mode)}
+                className={[
+                  'h-8 rounded-full px-4 text-[13px] font-medium capitalize transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]',
+                  isActive
+                    ? 'bg-[#7c3aed] text-white'
+                    : 'text-[#a1a1a1] hover:text-[#ededed]',
+                ].join(' ')}
+              >
+                {mode}
+              </button>
+            )
+          })}
+        </div>
+
+        <label className="sr-only" htmlFor="feed-language-filter">
+          Filter by language
+        </label>
+        <select
+          id="feed-language-filter"
+          value={languageFilter}
+          onChange={(event) => onLanguageFilterChange(event.target.value as LanguageFilter)}
+          className="h-9 rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 text-[13px] font-medium text-[#ededed] outline-none transition-colors duration-[120ms] hover:border-[#3a3a3a] focus:border-[#7c3aed]"
+        >
+          {LANGUAGE_FILTERS.map((filter) => (
+            <option key={filter.value} value={filter.value}>
+              {filter.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
+
+function EmptyFeedState() {
+  return (
+    <section className="rounded-[10px] border border-[#2a2a2a] bg-[#111111] px-6 py-16 text-center">
+      <div className="mx-auto mb-4 text-5xl" aria-hidden="true">
+        🎭
+      </div>
+      <h2 className="text-xl font-semibold text-[#ededed]">No memes yet</h2>
+      <p className="mt-2 text-[15px] leading-[1.6] text-[#a1a1a1]">
+        Be the first to create one
+      </p>
+      <Link
+        to={ROUTES.CREATE}
+        className="mt-6 inline-flex h-10 items-center justify-center rounded-[6px] bg-[#7c3aed] px-5 text-[13px] font-medium text-white transition-colors duration-[120ms] hover:bg-[#6d28d9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#6d28d9]"
+      >
+        Create a meme
+      </Link>
+    </section>
+  )
+}
+
+function FeedPage() {
+  const [sortMode, setSortMode] = useState<SortMode>('latest')
+  const [languageFilter, setLanguageFilter] = useState<LanguageFilter>('all')
+  const [isLoading, setIsLoading] = useState(true)
+  const visibleMemes =
+    languageFilter === 'all'
+      ? MOCK_MEMES
+      : MOCK_MEMES.filter((meme) => meme.language === languageFilter)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsLoading(false)
+    }, 500)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
+
+  return (
+    <main className="min-h-[calc(100vh-80px)] bg-[#0a0a0a] pb-24 pt-4 text-[#ededed] sm:px-4 sm:pt-6">
+      <div className="mx-auto w-full max-w-[680px]">
+        <SortBar
+          sortMode={sortMode}
+          onSortModeChange={setSortMode}
+          languageFilter={languageFilter}
+          onLanguageFilterChange={setLanguageFilter}
+        />
+
+        <div className="flex flex-col gap-4 px-0 sm:px-0">
+          {isLoading ? (
+            <>
+              <MemeCardSkeleton />
+              <MemeCardSkeleton />
+              <MemeCardSkeleton />
+            </>
+          ) : visibleMemes.length > 0 ? (
+            visibleMemes.map((meme) => (
+              <MemeCard
+                key={meme.id}
+                id={meme.id}
+                imageUrl={meme.imageUrl}
+                title={meme.title}
+                language={meme.language}
+                viewCount={meme.viewCount}
+                createdAt={meme.createdAt}
+                profile={meme.profile}
+              />
+            ))
+          ) : (
+            <EmptyFeedState />
+          )}
+        </div>
+
+        {!isLoading && visibleMemes.length > 0 ? (
+          <div className="flex justify-center px-4 py-6">
+            <button
+              type="button"
+              className="h-10 rounded-[6px] border border-[#2a2a2a] bg-transparent px-5 text-[13px] font-medium text-[#a1a1a1] transition-colors duration-[120ms] hover:border-[#3a3a3a] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#1a1a1a]"
+            >
+              Load more
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <Link
+        to={ROUTES.CREATE}
+        aria-label="Create a meme"
+        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#7c3aed] text-3xl font-medium leading-none text-white shadow-[0_4px_20px_#7c3aed40] transition-colors duration-[120ms] hover:bg-[#6d28d9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#6d28d9] sm:hidden"
+      >
+        +
+      </Link>
+    </main>
+  )
+}
+
+export default function HomePage() {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <LandingPage />
+  }
+
+  return <FeedPage />
 }
