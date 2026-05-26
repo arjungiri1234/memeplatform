@@ -1,4 +1,4 @@
-import type { MemeAIResult } from '@/lib/types'
+import type { MemeAIResult } from '../types'
 
 export async function generateWithGemini(
   _userPrompt: string,

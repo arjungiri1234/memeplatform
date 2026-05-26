@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { MemeAIResult, Template } from '@/lib/types'
+import type { MemeAIResult, Template } from '../lib/types'
 
 interface MemeState {
   selectedTemplate: Template | null

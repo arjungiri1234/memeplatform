@@ -1,4 +1,4 @@
-import type { MemeAIResult } from '@/lib/types'
+import type { MemeAIResult } from '../types'
 
 // Phase 3 — Claude Haiku (captions) + Replicate FLUX (images)
 export async function generateWithProduction(

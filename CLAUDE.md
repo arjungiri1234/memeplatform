@@ -482,7 +482,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 ## In scope — Phase 1
 
 - [x] Project scaffold
-- [ ] SQL migrations (profiles, templates, memes, RLS, trigger)
+- [x] SQL migrations (profiles, templates, memes, RLS, trigger)
 - [x] Supabase client setup + TypeScript types
 - [x] i18n setup — 5 languages, basic keys
 - [ ] Auth — Google OAuth + email, profile auto-creation
@@ -493,7 +493,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [ ] Feed page — infinite scroll, cursor pagination, 20 per page
 - [ ] Profile page — user's own memes grid
 - [ ] Language switcher — 5 languages in Navbar dropdown
-- [ ] Seed script — 15 starter templates
+- [x] Seed script — 15 starter templates
 
 ---
 
