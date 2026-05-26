@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# env files — never commit these
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Supabase
+supabase/.env
+supabase/functions/.env
+
+# build output
+dist/
+build/
+
+# editor
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
