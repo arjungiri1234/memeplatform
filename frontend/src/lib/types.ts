@@ -1,3 +1,5 @@
+import type { Session, User } from '@supabase/supabase-js'
+
 export type Locale = 'en' | 'ne' | 'hi' | 'ru' | 'zh'
 
 export interface Profile {
@@ -39,4 +41,17 @@ export interface MemeAIResult {
 export interface FeedPage {
   memes: MemeWithProfile[]
   nextCursor: string | null
+}
+
+export interface AuthResult {
+  user: User | null
+  error: string | null
+}
+
+export interface AuthState {
+  user: User | null
+  profile: Profile | null
+  session: Session | null
+  loading: boolean
+  error: string | null
 }

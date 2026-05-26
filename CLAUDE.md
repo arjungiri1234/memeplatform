@@ -485,7 +485,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [x] SQL migrations (profiles, templates, memes, RLS, trigger)
 - [x] Supabase client setup + TypeScript types
 - [x] i18n setup — 5 languages, basic keys
-- [ ] Auth — Google OAuth + email, profile auto-creation
+- [x] Auth — Google OAuth + email, profile auto-creation
 - [ ] Flow A — upload image → AI captions → canvas → publish
 - [ ] Flow B — type prompt → Gemini image + captions → canvas → publish
 - [ ] Konva canvas editor — background + draggable text + Unicode fonts
