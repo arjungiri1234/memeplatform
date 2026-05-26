@@ -1,9 +1,21 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import { useAuth } from '../hooks/useAuth'
+import { ROUTES } from '../lib/constants'
 
 type Mode = 'signin' | 'signup'
+
+interface FormErrors {
+  email?: string
+  password?: string
+  username?: string
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/
 
 function GoogleIcon() {
   return (
@@ -34,52 +46,80 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const {
+    signInWithEmail,
+    signInWithGoogle,
+    signUpWithEmail,
+    loading,
+    error,
+    isAuthenticated,
+  } = useAuth()
 
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [username, setUsername] = useState('')
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const callbackError =
+    searchParams.get('error') === 'auth_failed'
+      ? 'Could not complete sign in. Please try again.'
+      : null
+
+  if (isAuthenticated) {
+    return <Navigate to={ROUTES.FEED} replace />
+  }
 
   function toggleMode() {
     setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
-    setError(null)
+    setFormErrors({})
+  }
+
+  function validateSignUpForm(): boolean {
+    const nextErrors: FormErrors = {}
+
+    if (!EMAIL_PATTERN.test(email)) {
+      nextErrors.email = 'Enter a valid email address'
+    }
+
+    if (password.length < 8) {
+      nextErrors.password = 'Password must be at least 8 characters'
+    }
+
+    if (username.length < 3) {
+      nextErrors.username = 'Username must be at least 3 characters'
+    } else if (username.includes(' ') || !USERNAME_PATTERN.test(username)) {
+      nextErrors.username = 'Use letters, numbers, and underscores only'
+    }
+
+    setFormErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
   async function handleGoogleSignIn() {
-    setIsLoading(true)
-    setError(null)
-    try {
-      // TODO: call useAuth hook → supabase.auth.signInWithOAuth({ provider: 'google' })
-    } catch {
-      setError(t('errors.auth_failed'))
-    } finally {
-      setIsLoading(false)
-    }
+    setFormErrors({})
+    await signInWithGoogle()
   }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-    try {
-      if (mode === 'signin') {
-        // TODO: call useAuth hook → supabase.auth.signInWithPassword({ email, password })
-      } else {
-        // TODO: call useAuth hook → supabase.auth.signUp({ email, password })
-      }
-    } catch {
-      setError(t('errors.auth_failed'))
-    } finally {
-      setIsLoading(false)
+
+    if (mode === 'signin') {
+      setFormErrors({})
+      await signInWithEmail(email, password)
+      return
     }
+
+    if (!validateSignUpForm()) {
+      return
+    }
+
+    await signUpWithEmail(email, password, username)
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-
-        {/* Logo / heading */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold text-text-primary">
             Meme Platform
@@ -89,21 +129,17 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="rounded-modal border border-border bg-surface p-8">
-
-          {/* Error banner */}
-          {error && (
+          {(error || callbackError) && (
             <div className="mb-4 rounded-btn border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {error}
+              {error ?? callbackError}
             </div>
           )}
 
-          {/* Google sign-in */}
           <Button
             variant="secondary"
             fullWidth
-            loading={isLoading}
+            loading={loading}
             onClick={handleGoogleSignIn}
             type="button"
           >
@@ -111,14 +147,12 @@ export default function LoginPage() {
             {t('auth.sign_in_google')}
           </Button>
 
-          {/* Divider */}
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-text-muted">or</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Email / password form */}
           <form onSubmit={handleEmailSubmit} noValidate className="flex flex-col gap-4">
             <Input
               label={t('auth.email')}
@@ -128,24 +162,40 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={isLoading}
+              disabled={loading}
+              error={formErrors.email}
             />
 
             <Input
               label={t('auth.password')}
               type="password"
-              placeholder="••••••••"
+              placeholder="password"
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={isLoading}
+              disabled={loading}
+              error={formErrors.password}
             />
+
+            {mode === 'signup' && (
+              <Input
+                label="Username"
+                type="text"
+                placeholder="meme_maker"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={loading}
+                error={formErrors.username}
+              />
+            )}
 
             <Button
               variant="primary"
               fullWidth
-              loading={isLoading}
+              loading={loading}
               type="submit"
               className="mt-1"
             >
@@ -153,7 +203,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Toggle mode */}
           <p className="mt-5 text-center text-sm text-text-secondary">
             {mode === 'signin' ? (
               <>
@@ -161,7 +210,8 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={toggleMode}
-                  className="font-medium text-accent transition-colors hover:text-accent-hover"
+                  disabled={loading}
+                  className="font-medium text-accent transition-colors hover:text-accent-hover disabled:opacity-50"
                 >
                   Sign up
                 </button>
@@ -172,7 +222,8 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={toggleMode}
-                  className="font-medium text-accent transition-colors hover:text-accent-hover"
+                  disabled={loading}
+                  className="font-medium text-accent transition-colors hover:text-accent-hover disabled:opacity-50"
                 >
                   Sign in
                 </button>
@@ -180,7 +231,6 @@ export default function LoginPage() {
             )}
           </p>
         </div>
-
       </div>
     </main>
   )
