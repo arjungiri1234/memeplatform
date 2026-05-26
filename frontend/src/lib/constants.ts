@@ -15,8 +15,10 @@ export const LANGUAGES: LanguageOption[] = [
 
 export const ROUTES = {
   HOME: '/',
+  FEED: '/feed',
   CREATE: '/create',
   EDITOR: '/editor',
   PROFILE: '/profile',
   LOGIN: '/login',
+  AUTH_CALLBACK: '/auth/callback',
 } as const
