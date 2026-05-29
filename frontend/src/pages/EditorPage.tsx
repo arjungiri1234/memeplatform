@@ -6,7 +6,7 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import EditorToolbar from '../components/EditorToolbar'
 import MemeEditor from '../components/MemeEditor'
 import type { MemeEditorHandle, TextObject } from '../components/MemeEditor'
@@ -342,6 +342,7 @@ function BackgroundPicker({
 
 export default function EditorPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const {
     generating,
     error: generateError,
@@ -355,10 +356,15 @@ export default function EditorPage() {
     publish,
     reset: resetPublish,
   } = usePublish()
-  const [activeTab, setActiveTab] = useState<EditorTab>('create')
+  const [templateId] = useState<string | null>(() => searchParams.get('templateId'))
+  const [activeTab, setActiveTab] = useState<EditorTab>(
+    () => (searchParams.get('mode') === 'upload' ? 'upload' : 'create'),
+  )
   const [selectedText, setSelectedText] = useState<TextObject | null>(null)
   const [backgroundColor, setBackgroundColor] = useState('#000000')
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(
+    () => searchParams.get('imageUrl'),
+  )
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -485,6 +491,7 @@ export default function EditorPage() {
       canvasDataUrl: dataUrl,
       title: title.trim() || null,
       language,
+      templateId: templateId ?? undefined,
     })
   }, [language, publish, title])
 
@@ -526,8 +533,8 @@ export default function EditorPage() {
         <header className="flex h-10 items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              to={ROUTES.FEED}
-              aria-label="Back to feed"
+              to={ROUTES.CREATE}
+              aria-label="Back to templates"
               className="flex h-10 w-10 items-center justify-center rounded-[6px] text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#1a1a1a]"
             >
               <BackIcon />
