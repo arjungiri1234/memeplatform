@@ -492,7 +492,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [ ] Konva canvas editor — background + draggable text + Unicode fonts
 - [ ] Template picker — grid, category filter, click to load in editor
 - [x] Feed UI — authenticated mock meme feed layout
-- [ ] Feed page — infinite scroll, cursor pagination, 20 per page
+- [x] Feed page — cursor pagination, load more, 20 per page
 - [ ] Profile page — user's own memes grid
 - [ ] Language switcher — 5 languages in Navbar dropdown
 - [x] Seed script — 15 starter templates

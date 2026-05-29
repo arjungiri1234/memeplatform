@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
-import type { AuthResult, Meme, Profile, Template } from './types'
+import type { AuthResult, FeedPage, Meme, Profile, Template } from './types'
 
 type DbProfile = Profile & Record<string, unknown>
 type DbTemplate = Template & Record<string, unknown>
@@ -278,6 +278,39 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return data
   } catch {
     return null
+  }
+}
+
+export async function getFeed(options?: {
+  cursor?: string
+  limit?: number
+  language?: string
+}): Promise<FeedPage> {
+  const searchParams = new URLSearchParams()
+
+  searchParams.set('limit', String(options?.limit ?? 20))
+
+  if (options?.cursor) {
+    searchParams.set('cursor', options.cursor)
+  }
+
+  if (options?.language) {
+    searchParams.set('language', options.language)
+  }
+
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/get-feed?${searchParams.toString()}`,
+      { method: 'GET' },
+    )
+
+    if (!response.ok) {
+      throw new Error('Feed request failed')
+    }
+
+    return await response.json() as FeedPage
+  } catch {
+    throw new Error('Failed to load feed, please try again')
   }
 }
 
