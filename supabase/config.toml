@@ -25,3 +25,6 @@ enable_signup = true
 [storage]
 enabled = true
 file_size_limit = "50MiB"
+
+[functions.get-feed]
+verify_jwt = false

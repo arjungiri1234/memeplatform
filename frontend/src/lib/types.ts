@@ -29,8 +29,17 @@ export interface Meme {
   created_at: string
 }
 
-export interface MemeWithProfile extends Meme {
-  profiles: Pick<Profile, 'username' | 'avatar_url'>
+export interface MemeWithProfile {
+  id: string
+  title: string | null
+  image_url: string
+  language: string
+  view_count: number
+  created_at: string
+  profiles: {
+    username: string
+    avatar_url: string | null
+  }
 }
 
 export interface MemeAIResult {
@@ -41,6 +50,7 @@ export interface MemeAIResult {
 export interface FeedPage {
   memes: MemeWithProfile[]
   nextCursor: string | null
+  total: number
 }
 
 export interface AuthResult {
