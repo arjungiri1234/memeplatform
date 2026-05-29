@@ -1,6 +1,6 @@
-import PlaceholderPage from './PlaceholderPage'
+import { Navigate } from 'react-router-dom'
+import { ROUTES } from '../lib/constants'
 
-// TODO: implement template picker + AI generate entry
 export default function CreatePage() {
-  return <PlaceholderPage title="Create" />
+  return <Navigate to={ROUTES.EDITOR} replace />
 }

@@ -15,10 +15,22 @@ import { useAuthStore } from '../stores/authStore'
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/
 
+// Ensures hydrateSession() runs once per page load, not once per useAuth() call.
+// Every component that calls useAuth() gets its own effect instance, and without
+// this flag each one would call setLoading(true) independently — causing the
+// spinner to re-appear whenever new components (EditorPage hooks) mount.
+let hydrationRan = false
+
 export function useAuth() {
   const navigate = useNavigate()
   const location = useLocation()
   const isSigningOutRef = useRef(false)
+  const locationPathnameRef = useRef(location.pathname)
+
+  useEffect(() => {
+    locationPathnameRef.current = location.pathname
+  })
+
   const {
     user,
     profile,
@@ -37,6 +49,9 @@ export function useAuth() {
     let isMounted = true
 
     async function hydrateSession() {
+      if (hydrationRan) return
+      hydrationRan = true
+
       setLoading(true)
       const currentSession = await getSession()
 
@@ -45,18 +60,19 @@ export function useAuth() {
       }
 
       if (currentSession) {
-        const currentProfile = await ensureProfile(currentSession.user)
-
-        if (!isMounted) {
-          return
-        }
-
         setUser(currentSession.user)
-        setProfile(currentProfile)
         setSession(currentSession)
       }
 
+      // Unblock ProtectedRoute immediately — profile loads in the background
       setLoading(false)
+
+      if (currentSession) {
+        const currentProfile = await ensureProfile(currentSession.user)
+        if (isMounted) {
+          setProfile(currentProfile)
+        }
+      }
     }
 
     void hydrateSession()
@@ -87,8 +103,8 @@ export function useAuth() {
 
         if (
           !isSigningOutRef.current &&
-          location.pathname !== ROUTES.LOGIN &&
-          location.pathname !== ROUTES.HOME
+          locationPathnameRef.current !== ROUTES.LOGIN &&
+          locationPathnameRef.current !== ROUTES.HOME
         ) {
           navigate(ROUTES.LOGIN, { replace: true })
         }
@@ -100,7 +116,6 @@ export function useAuth() {
       unsubscribe()
     }
   }, [
-    location.pathname,
     navigate,
     reset,
     setError,

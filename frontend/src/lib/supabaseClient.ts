@@ -314,6 +314,64 @@ export async function getFeed(options?: {
   }
 }
 
+export async function uploadMemeImage(
+  userId: string,
+  file: File,
+): Promise<string> {
+  const timestamp = Date.now()
+  const fileName = `${timestamp}-${crypto.randomUUID()}.png`
+  const filePath = `${userId}/${fileName}`
+
+  try {
+    const { error } = await supabase.storage
+      .from('memes')
+      .upload(filePath, file, {
+        contentType: file.type || 'image/png',
+        upsert: false,
+      })
+
+    if (error) {
+      throw error
+    }
+
+    const { data } = supabase.storage.from('memes').getPublicUrl(filePath)
+
+    return data.publicUrl
+  } catch {
+    throw new Error('Failed to upload meme image')
+  }
+}
+
+export async function insertMeme(data: {
+  userId: string
+  imageUrl: string
+  title: string | null
+  language: string
+  templateId?: string
+}): Promise<Meme> {
+  try {
+    const { data: meme, error } = await supabase
+      .from('memes')
+      .insert({
+        user_id: data.userId,
+        image_url: data.imageUrl,
+        title: data.title,
+        language: data.language,
+        template_id: data.templateId ?? null,
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    return meme
+  } catch {
+    throw new Error('Failed to publish meme')
+  }
+}
+
 export async function ensureProfile(user: User): Promise<Profile | null> {
   const existingProfile = await getProfile(user.id)
 

@@ -488,8 +488,12 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [x] Auth — Google OAuth + email, profile auto-creation
 - [x] Edge Functions — generate meme and public feed endpoints
 - [ ] Flow A — upload image → AI captions → canvas → publish
-- [ ] Flow B — type prompt → Gemini image + captions → canvas → publish
-- [ ] Konva canvas editor — background + draggable text + Unicode fonts
+- [x] Flow B — type prompt → Gemini image + captions → canvas → publish
+- [x] Canvas editor layout shell — protected /editor route
+- [x] Konva canvas core component — background, draggable text, export
+- [x] Text styling toolbar — font, size, color, outline controls
+- [x] Sticker panel and background color picker
+- [x] Konva canvas editor — background + draggable text + Unicode fonts
 - [ ] Template picker — grid, category filter, click to load in editor
 - [x] Feed UI — authenticated mock meme feed layout
 - [x] Feed page — cursor pagination, load more, 20 per page
