@@ -1,125 +1,61 @@
 -- =============================================================
--- seed/templates.sql
--- 15 starter meme templates.
--- Mix of classic Western memes + South Asian / Nepali / Hindi
--- cultural templates.
+-- seed/templates.sql  —  15 starter meme templates
+-- Mix: 5 classic Western · 3 South Asian reaction · 4 animal · 3 South Asian custom
 --
--- Categories: reaction (8), animal (4), text (3)
+-- HOW TO RUN:
+--   Supabase Dashboard → SQL Editor → paste this → Run
 --
--- image_url uses placehold.co until real assets are uploaded.
--- Replace with actual Supabase Storage URLs before launch.
---
--- Run via:
---   supabase db execute --file supabase/seed/templates.sql
+-- Safe to re-run: deletes and re-inserts by name.
 -- =============================================================
 
-insert into public.templates (name, image_url, category)
-select name, image_url, category
-from (values
-
-  -- ============================================================
-  -- REACTION (8) — relatable situations and emotional reactions
-  -- ============================================================
-
-  -- Classic Western
-  (
-    'Drake Approves',
-    'https://placehold.co/800x600?text=Drake+Approves',
-    'reaction'
-  ),
-  (
-    'Distracted Boyfriend',
-    'https://placehold.co/800x600?text=Distracted+Boyfriend',
-    'reaction'
-  ),
-  (
-    'Two Buttons',
-    'https://placehold.co/800x600?text=Two+Buttons',
-    'reaction'
-  ),
-  (
-    'Change My Mind',
-    'https://placehold.co/800x600?text=Change+My+Mind',
-    'reaction'
-  ),
-  (
-    'Surprised Pikachu',
-    'https://placehold.co/800x600?text=Surprised+Pikachu',
-    'reaction'
-  ),
-
-  -- South Asian / Nepali / Hindi cultural templates
-  (
-    'Bahut Hard',
-    'https://placehold.co/800x600?text=Bahut+Hard',
-    'reaction'
-    -- "Very hard" — South Asian reaction to anything overwhelming
-  ),
-  (
-    'Chai Break',
-    'https://placehold.co/800x600?text=Chai+Break',
-    'reaction'
-    -- The universal South Asian solution to every problem
-  ),
-  (
-    'Sahi Baat Hai',
-    'https://placehold.co/800x600?text=Sahi+Baat+Hai',
-    'reaction'
-    -- "That's exactly right" — Indian agreement/validation reaction
-  ),
-
-  -- ============================================================
-  -- ANIMAL (4)
-  -- ============================================================
-
-  (
-    'Doge',
-    'https://placehold.co/800x600?text=Doge',
-    'animal'
-  ),
-  (
-    'Buff Doge vs Cheems',
-    'https://placehold.co/800x600?text=Buff+Doge+vs+Cheems',
-    'animal'
-    -- Then vs Now / Strong vs Weak comparison format
-  ),
-  (
-    'Crying Cat',
-    'https://placehold.co/800x600?text=Crying+Cat',
-    'animal'
-  ),
-  (
-    'Billi Ji',
-    'https://placehold.co/800x600?text=Billi+Ji',
-    'animal'
-    -- "Respected cat" — the judgemental temple / street cat of South Asia
-  ),
-
-  -- ============================================================
-  -- TEXT (3) — blank canvases for text-heavy memes
-  -- ============================================================
-
-  (
-    'Classic Top Bottom',
-    'https://placehold.co/800x600?text=Classic+Top+Bottom',
-    'text'
-    -- White background, Impact font top and bottom — the original meme format
-  ),
-  (
-    'Dark Slate',
-    'https://placehold.co/800x600?text=Dark+Slate',
-    'text'
-    -- Pure black background for white text — clean, modern
-  ),
-  (
-    'Bollywood Title Card',
-    'https://placehold.co/800x600?text=Bollywood+Title+Card',
-    'text'
-    -- Golden text on dark cinematic background — Bollywood / Kollywood style
-  )
-
-) as t(name, image_url, category)
--- Skip rows that already exist by name to allow safe re-runs
-where not exists (
-  select 1 from public.templates where public.templates.name = t.name
+-- Wipe and reload so re-runs are always clean
+delete from public.templates
+where name in (
+  'Drake Approves', 'Distracted Boyfriend', 'Two Buttons', 'Change My Mind', 'Surprised Pikachu',
+  'Shah Rukh Khan', 'SRK Angry', 'Ranveer Singh',
+  'Doge', 'Buff Doge vs Cheems', 'Woman Yelling at Cat', 'Monkey Puppet',
+  'Baburao Hera Pheri', 'Paresh Rawal', 'Nepali Meme',
+  -- legacy placeholder names (safe to remove)
+  'Bahut Hard', 'Chai Break', 'Sahi Baat Hai',
+  'Crying Cat', 'Billi Ji',
+  'Classic Top Bottom', 'Dark Slate', 'Bollywood Title Card'
 );
+
+insert into public.templates (name, image_url, category) values
+
+  -- ================================================================
+  -- REACTION (8) — relatable reactions, Western + South Asian icons
+  -- ================================================================
+
+  ('Drake Approves',       'https://i.imgflip.com/30b1gx.jpg',    'reaction'),
+  ('Distracted Boyfriend', 'https://i.imgflip.com/1ur9b0.jpg',    'reaction'),
+  ('Two Buttons',          'https://i.imgflip.com/1g8my4.jpg',    'reaction'),
+  ('Change My Mind',       'https://i.imgflip.com/24y43o.jpg',    'reaction'),
+  ('Surprised Pikachu',    'https://i.imgflip.com/2kbn1e.jpg',    'reaction'),
+
+  -- Shah Rukh Khan — most remixed Bollywood actor on the internet
+  ('Shah Rukh Khan',       'https://i.imgflip.com/2/8204i5.jpg',  'reaction'),
+  -- SRK in full rage mode — perfect for "how dare you" moments
+  ('SRK Angry',            'https://i.imgflip.com/2/1yoert.jpg',  'reaction'),
+  -- Ranveer's unhinged energy — South Asian chaos energy meme
+  ('Ranveer Singh',        'https://i.imgflip.com/2/86qpws.jpg',  'reaction'),
+
+  -- ================================================================
+  -- ANIMAL (4)
+  -- ================================================================
+
+  ('Doge',                  'https://i.imgflip.com/4t0m5.jpg',    'animal'),
+  ('Buff Doge vs Cheems',   'https://i.imgflip.com/43a45p.png',   'animal'),
+  ('Woman Yelling at Cat',  'https://i.imgflip.com/345v97.jpg',   'animal'),
+  ('Monkey Puppet',         'https://i.imgflip.com/2gnnjh.jpg',   'animal'),
+
+  -- ================================================================
+  -- CUSTOM (3) — South Asian / Nepali / Bollywood formats
+  -- ================================================================
+
+  -- Hera Pheri's Baburao — the original desi "why is this happening to me"
+  ('Baburao Hera Pheri',   'https://i.imgflip.com/2/334bel.jpg',  'custom'),
+  -- Paresh Rawal reaction — classic Bollywood over-the-top expression
+  ('Paresh Rawal',         'https://i.imgflip.com/2/1pv4h4.jpg',  'custom'),
+  -- Nepali meme format — viral Nepali internet humor template
+  ('Nepali Meme',          'https://i.imgflip.com/2/61ug7a.jpg',  'custom');
