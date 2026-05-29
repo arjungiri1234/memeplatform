@@ -1,28 +1,56 @@
-import type { MemeAIResult } from '../types.ts'
-import { generateWithGemini } from './gemini.ts'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { GenerateMemeOutput } from '../types.ts'
+import { generateCaptionsAndPrompt, generateImage } from './gemini.ts'
 
-type AIProvider = 'gemini' | 'production'
+function getAIProvider(): string {
+  return Deno.env.get('AI_PROVIDER') ?? 'gemini'
+}
 
-function getAIProvider(): AIProvider {
-  const provider = Deno.env.get('AI_PROVIDER') ?? 'gemini'
-
-  if (provider === 'gemini' || provider === 'production') {
-    return provider
-  }
-
-  throw new Error(`Unknown AI_PROVIDER: ${provider}`)
+function base64ToBytes(base64ImageData: string): Uint8Array {
+  return Uint8Array.from(
+    atob(base64ImageData),
+    (character) => character.charCodeAt(0),
+  )
 }
 
 export async function generateMemeAI(
   userPrompt: string,
   language: string,
-): Promise<MemeAIResult> {
+  userId: string,
+  supabaseClient: SupabaseClient,
+): Promise<GenerateMemeOutput> {
   const provider = getAIProvider()
 
-  if (provider === 'gemini') {
-    return generateWithGemini(userPrompt, language)
+  if (provider !== 'gemini') {
+    throw new Error('Unknown AI_PROVIDER')
   }
 
-  // TODO: implement production provider
-  throw new Error('Production AI provider is not implemented')
+  const { imagePrompt, captions } = await generateCaptionsAndPrompt(
+    userPrompt,
+    language,
+  )
+  const base64ImageData = await generateImage(imagePrompt)
+  const bytes = base64ToBytes(base64ImageData)
+  const path = `generated/${userId}/${Date.now()}.png`
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from('memes')
+    .upload(path, bytes, {
+      contentType: 'image/png',
+      upsert: false,
+    })
+
+  if (uploadError) {
+    throw new Error('Storage upload failed')
+  }
+
+  const { data } = supabaseClient.storage
+    .from('memes')
+    .getPublicUrl(path)
+
+  return {
+    imageUrl: data.publicUrl,
+    captions,
+    imagePrompt,
+  }
 }

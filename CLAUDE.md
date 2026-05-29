@@ -486,6 +486,7 @@ VITE_ prefixed variables. Only Edge Functions use it.**
 - [x] Supabase client setup + TypeScript types
 - [x] i18n setup — 5 languages, basic keys
 - [x] Auth — Google OAuth + email, profile auto-creation
+- [x] Edge Functions — generate meme and public feed endpoints
 - [ ] Flow A — upload image → AI captions → canvas → publish
 - [ ] Flow B — type prompt → Gemini image + captions → canvas → publish
 - [ ] Konva canvas editor — background + draggable text + Unicode fonts
