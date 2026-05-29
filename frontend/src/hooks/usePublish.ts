@@ -7,6 +7,7 @@ interface PublishOptions {
   canvasDataUrl: string
   title: string | null
   language: string
+  templateId?: string
 }
 
 interface UsePublishResult {
@@ -41,7 +42,7 @@ export function usePublish(): UsePublishResult {
   }, [])
 
   const publish = useCallback(
-    async ({ canvasDataUrl, title, language }: PublishOptions): Promise<boolean> => {
+    async ({ canvasDataUrl, title, language, templateId }: PublishOptions): Promise<boolean> => {
       setPublishing(true)
       setError(null)
       setPublished(false)
@@ -61,6 +62,7 @@ export function usePublish(): UsePublishResult {
           imageUrl,
           title,
           language,
+          templateId,
         })
 
         setPublishedMemeId(meme.id)
