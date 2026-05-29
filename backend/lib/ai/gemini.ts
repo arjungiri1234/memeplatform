@@ -3,7 +3,7 @@ import type { GeminiTextResponse } from '../types.ts'
 const TEXT_MODEL_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 const IMAGE_MODEL_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent'
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent'
 
 interface GeminiPart {
   text?: string
@@ -163,7 +163,7 @@ export async function generateImage(imagePrompt: string): Promise<string> {
           }],
         }],
         generationConfig: {
-          responseModalities: ['IMAGE', 'TEXT'],
+          responseModalities: ['Image'],
         },
       }),
     },
