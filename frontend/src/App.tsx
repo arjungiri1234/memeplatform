@@ -4,7 +4,7 @@ import { ROUTES } from './lib/constants'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
-import CreatePage from './pages/CreatePage'
+import TemplatePickerPage from './pages/TemplatePickerPage'
 import EditorPage from './pages/EditorPage'
 import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
@@ -26,7 +26,7 @@ export default function App() {
     <Routes>
       <Route path={ROUTES.HOME}    element={<Layout><HomePage /></Layout>} />
       <Route path={ROUTES.FEED}    element={<Layout><HomePage /></Layout>} />
-      <Route path={ROUTES.CREATE}  element={<Layout><ProtectedRoute><CreatePage /></ProtectedRoute></Layout>} />
+      <Route path={ROUTES.CREATE}  element={<Layout><ProtectedRoute><TemplatePickerPage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.EDITOR}  element={<Layout><ProtectedRoute><EditorPage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.PROFILE} element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.LOGIN}   element={<LoginPage />} />
