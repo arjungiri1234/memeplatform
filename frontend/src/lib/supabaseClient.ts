@@ -314,6 +314,29 @@ export async function getFeed(options?: {
   }
 }
 
+export async function getTemplates(category?: string | null): Promise<Template[]> {
+  try {
+    let query = supabase
+      .from('templates')
+      .select('*')
+      .order('created_at', { ascending: true })
+
+    if (category != null) {
+      query = query.eq('category', category)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw error
+    }
+
+    return data
+  } catch {
+    throw new Error('Failed to load templates')
+  }
+}
+
 export async function uploadMemeImage(
   userId: string,
   file: File,
