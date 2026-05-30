@@ -1,5 +1,13 @@
 import type { GeminiTextResponse } from '../types.ts'
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  ne: 'Nepali — write captions in Devanagari script (नेपाली)',
+  hi: 'Hindi — write captions in Devanagari script (हिन्दी)',
+  ru: 'Russian — write captions in Cyrillic script (Русский)',
+  zh: 'Chinese — write captions in Simplified Chinese characters (中文)',
+}
+
 const TEXT_MODEL_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 const IMAGE_MODEL_URL =
@@ -84,24 +92,22 @@ export async function generateCaptionsAndPrompt(
   language: string,
 ): Promise<GeminiTextResponse> {
   const apiKey = getGeminiApiKey()
+  const languageName = LANGUAGE_NAMES[language] ?? `${language} language`
   const prompt = `You are a meme caption writer for a multilingual platform.
 The user wrote: '${userPrompt}'
-Language: ${language}
+Target language: ${languageName}
 
 Do exactly two things:
 1. Translate the prompt to English for image generation.
    If already English keep as is. Make it descriptive and
-   visual for AI image generation.
-2. Write exactly 3 short funny meme captions in the
-   SAME language as the input.
-   Rules for captions:
+   visual for an AI image generator. No text in the image.
+2. Write exactly 3 short funny meme captions.
+   CRITICAL: captions MUST be written in ${languageName}.
+   Rules:
    - Max 8 words each
    - Punchy and culturally relevant
-   - For ne: Devanagari script (नेपाली)
-   - For hi: Devanagari script (हिन्दी)
-   - For ru: Cyrillic script (Русский)
-   - For zh: Simplified Chinese (中文)
-   - For en: English
+   - Never use English for captions unless target language is English
+   - Use the correct script for the language (Devanagari, Cyrillic, etc.)
 
 Return ONLY this exact JSON with no markdown or explanation:
 {
@@ -159,7 +165,7 @@ export async function generateImage(imagePrompt: string): Promise<string> {
         contents: [{
           parts: [{
             text:
-              `${imagePrompt}, meme style, funny, expressive, vibrant colors, high quality`,
+              `${imagePrompt}, meme style, funny, expressive, vibrant colors, high quality, no text, no captions, no words, no watermarks, no letters`,
           }],
         }],
         generationConfig: {
