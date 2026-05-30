@@ -7,6 +7,7 @@ import {
   type DragEvent,
 } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import CaptionSelector from '../components/CaptionSelector'
 import EditorToolbar from '../components/EditorToolbar'
 import MemeEditor from '../components/MemeEditor'
 import type { MemeEditorHandle, TextObject } from '../components/MemeEditor'
@@ -15,6 +16,7 @@ import { useMemeGeneration } from '../hooks/useMemeGeneration'
 import { usePublish } from '../hooks/usePublish'
 import { ROUTES } from '../lib/constants'
 import { validateMemeFile } from '../lib/fileValidation'
+import type { MemeAIResult } from '../lib/types'
 
 type EditorTab = 'create' | 'upload'
 
@@ -109,27 +111,65 @@ function FieldLabel({ children }: { children: string }) {
   )
 }
 
+const GENERATING_MESSAGES = [
+  'Translating your prompt...',
+  'Generating image with AI...',
+  'Writing captions...',
+  'Almost ready...',
+]
+
+function GeneratingCard() {
+  const [msgIndex, setMsgIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % GENERATING_MESSAGES.length)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="rounded-[8px] border border-[#2a2a2a] bg-[#111111] px-4 py-8 text-center">
+      <div
+        className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-[#7c3aed] border-t-transparent"
+        aria-hidden="true"
+      />
+      <p className="text-[14px] font-medium text-[#a1a1a1]">Creating your meme...</p>
+      <p className="mt-1.5 text-[12px] text-[#555555]">
+        {GENERATING_MESSAGES[msgIndex] ?? GENERATING_MESSAGES[0]}
+      </p>
+    </div>
+  )
+}
+
 function CreateTabContent({
   prompt,
   language,
-  captions,
+  result,
+  selectedCaption,
   generating,
   error,
   onPromptChange,
   onLanguageChange,
   onGenerate,
+  onRegenerate,
   onCaptionSelect,
 }: {
   prompt: string
   language: string
-  captions: string[]
+  result: MemeAIResult | null
+  selectedCaption: string | null
   generating: boolean
   error: string | null
   onPromptChange: (prompt: string) => void
   onLanguageChange: (language: string) => void
   onGenerate: () => void
+  onRegenerate: () => void
   onCaptionSelect: (caption: string) => void
 }) {
+  // Replace entire tab content with loading card while generating
+  if (generating) return <GeneratingCard />
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -137,10 +177,12 @@ function CreateTabContent({
         <textarea
           value={prompt}
           onChange={(event) => onPromptChange(event.target.value)}
+          maxLength={200}
           placeholder={`Type in any language...
 नेपाली, हिन्दी, Русский, 中文, English`}
           className="h-[100px] w-full resize-none rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 py-2 text-sm leading-[1.5] text-[#ededed] outline-none transition-colors duration-[120ms] placeholder:text-[#555555] hover:border-[#3a3a3a] focus:border-[#7c3aed]"
         />
+        <p className="text-right text-[11px] text-[#555555]">{prompt.length}/200</p>
       </div>
 
       <div className="space-y-2">
@@ -150,9 +192,9 @@ function CreateTabContent({
           onChange={(event) => onLanguageChange(event.target.value)}
           className="h-9 w-full rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 text-sm text-[#ededed] outline-none transition-colors duration-[120ms] hover:border-[#3a3a3a] focus:border-[#7c3aed]"
         >
-          {LANGUAGE_OPTIONS.map((language) => (
-            <option key={language.value} value={language.value}>
-              {language.label}
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
@@ -161,16 +203,10 @@ function CreateTabContent({
       <button
         type="button"
         onClick={onGenerate}
-        disabled={generating}
+        disabled={prompt.trim().length === 0}
         className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[6px] bg-[#7c3aed] px-4 text-sm font-medium text-white transition-colors duration-[120ms] hover:bg-[#6d28d9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {generating ? (
-          <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent"
-            aria-hidden="true"
-          />
-        ) : null}
-        {generating ? 'Generating...' : 'Generate meme'}
+        Generate meme
       </button>
 
       {error ? (
@@ -179,34 +215,39 @@ function CreateTabContent({
 
       <div className="h-px bg-[#2a2a2a]" />
 
-      <section className="space-y-3">
-        <h2 className="text-[13px] font-medium leading-[1.5] text-[#ededed]">
-          Choose a caption
-        </h2>
-        {captions.length > 0 ? (
+      {result ? (
+        <>
+          <img
+            src={result.imageUrl}
+            alt="Generated meme preview"
+            className="w-full max-h-[120px] rounded-[8px] border border-[#2a2a2a] object-cover"
+          />
+          <CaptionSelector
+            captions={result.captions}
+            selectedCaption={selectedCaption}
+            onSelect={onCaptionSelect}
+            language={language}
+          />
+          <button
+            type="button"
+            onClick={onRegenerate}
+            className="h-9 w-full rounded-[6px] border border-[#2a2a2a] bg-transparent text-[13px] font-medium text-[#a1a1a1] transition-colors duration-[120ms] hover:border-[#3a3a3a] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+          >
+            Regenerate
+          </button>
+        </>
+      ) : (
+        <section aria-label="Caption suggestions">
+          <h2 className="mb-3 text-[13px] font-medium leading-[1.5] text-[#a1a1a1]">
+            Choose a caption to add
+          </h2>
           <div className="space-y-2">
-            {captions.map((caption) => (
-              <button
-                key={caption}
-                type="button"
-                onClick={() => onCaptionSelect(caption)}
-                className="min-h-10 w-full rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 py-2 text-left text-[13px] font-medium leading-[1.5] text-[#ededed] transition-colors duration-[120ms] hover:border-[#3a3a3a] hover:bg-[#1a1a1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#1a1a1a]"
-              >
-                {caption}
-              </button>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-10 animate-pulse rounded-[6px] border border-[#2a2a2a] bg-[#1a1a1a]" />
             ))}
           </div>
-        ) : (
-          <div className="space-y-2">
-            {[0, 1, 2].map((item) => (
-              <div
-                key={item}
-                className="h-10 rounded-[6px] border border-[#2a2a2a] bg-[#1a1a1a]"
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   )
 }
@@ -346,7 +387,10 @@ export default function EditorPage() {
   const {
     generating,
     error: generateError,
-    generate,
+    result,
+    selectedCaption,
+    generateMeme,
+    selectCaption,
     reset: resetGeneration,
   } = useMemeGeneration()
   const {
@@ -370,7 +414,6 @@ export default function EditorPage() {
   const [title, setTitle] = useState('')
   const [language, setLanguage] = useState('en')
   const [prompt, setPrompt] = useState('')
-  const [captions, setCaptions] = useState<string[]>([])
   const editorRef = useRef<MemeEditorHandle | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -456,29 +499,27 @@ export default function EditorPage() {
     editorRef.current?.addSticker(emoji)
   }, [])
 
+  const handlePromptChange = useCallback((value: string) => {
+    setPrompt(value)
+    if (generateError) resetGeneration()
+  }, [generateError, resetGeneration])
+
   const handleCaptionSelect = useCallback((caption: string) => {
     editorRef.current?.addText(caption)
-  }, [])
+    selectCaption(caption)
+  }, [selectCaption])
 
   const handleGenerate = useCallback(async () => {
     resetPublish()
-    const result = await generate({
-      userPrompt: prompt,
-      language,
-    })
-
-    if (result) {
+    const output = await generateMeme(prompt, language)
+    if (output) {
       setBackgroundImageUrl((currentUrl) => {
-        if (currentUrl?.startsWith('blob:')) {
-          URL.revokeObjectURL(currentUrl)
-        }
-
-        return result.imageUrl
+        if (currentUrl?.startsWith('blob:')) URL.revokeObjectURL(currentUrl)
+        return output.imageUrl
       })
       setUploadedFileName(null)
-      setCaptions(result.captions.slice(0, 3))
     }
-  }, [generate, language, prompt, resetPublish])
+  }, [generateMeme, language, prompt, resetPublish])
 
   const handlePublish = useCallback(async () => {
     const dataUrl = editorRef.current?.exportCanvas()
@@ -572,12 +613,14 @@ export default function EditorPage() {
                 <CreateTabContent
                   prompt={prompt}
                   language={language}
-                  captions={captions}
+                  result={result}
+                  selectedCaption={selectedCaption}
                   generating={generating}
                   error={generateError}
-                  onPromptChange={setPrompt}
+                  onPromptChange={handlePromptChange}
                   onLanguageChange={setLanguage}
                   onGenerate={handleGenerate}
+                  onRegenerate={handleGenerate}
                   onCaptionSelect={handleCaptionSelect}
                 />
               ) : (

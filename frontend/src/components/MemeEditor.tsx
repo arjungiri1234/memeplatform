@@ -6,6 +6,10 @@ import {
   useRef,
   useState,
 } from 'react'
+
+// Converts 0–1 ratio to canvas pixels — used for responsive text placement
+const relX = (ratio: number, w: number) => Math.round(w * ratio)
+const relY = (ratio: number, h: number) => Math.round(h * ratio)
 import Konva from 'konva'
 import { Image, Layer, Rect, Stage, Text, Transformer } from 'react-konva'
 import useImage from 'use-image'
@@ -37,52 +41,20 @@ interface MemeEditorProps {
   backgroundColor?: string
   onExport: (dataUrl: string) => void
   onSelectionChange?: (selectedText: TextObject | null) => void
-  width?: number
-  height?: number
 }
 
-interface ImageFit {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-const DEFAULT_WIDTH = 800
-const DEFAULT_HEIGHT = 600
+const DEFAULT_ASPECT = 4 / 3
+const MIN_WIDTH = 300
 const DEFAULT_BACKGROUND = '#000000'
 const DEFAULT_TEXT = 'NEW TEXT'
 
-function getImageFit(
-  image: HTMLImageElement | null,
-  width: number,
-  height: number,
-): ImageFit | null {
-  if (!image) {
-    return null
-  }
-
-  const scale = Math.min(width / image.width, height / image.height)
-  const scaledWidth = image.width * scale
-  const scaledHeight = image.height * scale
-
+function createTextObject(text: string, w: number, h: number): TextObject {
   return {
-    x: (width - scaledWidth) / 2,
-    y: (height - scaledHeight) / 2,
-    width: scaledWidth,
-    height: scaledHeight,
-  }
-}
-
-function createTextObject(text: string, width: number, height: number): TextObject {
-  const id = `text-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-
-  return {
-    id,
+    id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     text: text.trim() || DEFAULT_TEXT,
-    x: width / 2 - 120,
-    y: height / 2 - 24,
-    fontSize: 32,
+    x: relX(0.5, w) - 120,
+    y: relY(0.08, h),
+    fontSize: Math.round(w * 0.06),
     fontFamily: 'Impact',
     fill: '#ffffff',
     stroke: '#000000',
@@ -91,15 +63,13 @@ function createTextObject(text: string, width: number, height: number): TextObje
   }
 }
 
-function createStickerObject(emoji: string, width: number, height: number): TextObject {
-  const id = `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-
+function createStickerObject(emoji: string, w: number, h: number): TextObject {
   return {
-    id,
+    id: `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     text: emoji,
-    x: width / 2 - 24,
-    y: height / 2 - 24,
-    fontSize: 48,
+    x: relX(0.5, w) - 24,
+    y: relY(0.5, h) - 24,
+    fontSize: Math.round(w * 0.08),
     fontFamily: 'Arial',
     fill: '#ffffff',
     stroke: '#000000',
@@ -115,14 +85,15 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
       backgroundColor = DEFAULT_BACKGROUND,
       onExport,
       onSelectionChange,
-      width = DEFAULT_WIDTH,
-      height = DEFAULT_HEIGHT,
     },
     ref,
   ) => {
     const [texts, setTexts] = useState<TextObject[]>([])
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [bgColor, setBgColor] = useState(backgroundColor)
+    const [canvasWidth, setCanvasWidth] = useState(600)
+    const [canvasHeight, setCanvasHeight] = useState(Math.round(600 / DEFAULT_ASPECT))
+    const wrapperRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<Konva.Stage | null>(null)
     const transformerRef = useRef<Konva.Transformer | null>(null)
     const uiLayerRef = useRef<Konva.Layer | null>(null)
@@ -130,7 +101,33 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
     const editingTextareaRef = useRef<HTMLTextAreaElement | null>(null)
     const [loadedBgImage] = useImage(backgroundImage ?? '', 'anonymous')
     const bgImage = loadedBgImage ?? null
-    const imageFit = getImageFit(bgImage, width, height)
+
+    // Resize canvas to fill container and match image aspect ratio — no letterboxing
+    const updateCanvasSize = useCallback(() => {
+      const wrapper = wrapperRef.current
+      if (!wrapper) return
+      const w = Math.max(wrapper.offsetWidth, MIN_WIDTH)
+      const aspect = bgImage
+        ? bgImage.width / bgImage.height
+        : DEFAULT_ASPECT
+      setCanvasWidth(w)
+      setCanvasHeight(Math.round(w / aspect))
+    }, [bgImage])
+
+    useEffect(() => { updateCanvasSize() }, [updateCanvasSize])
+
+    useEffect(() => {
+      const wrapper = wrapperRef.current
+      if (!wrapper) return
+      const observer = new ResizeObserver(updateCanvasSize)
+      observer.observe(wrapper)
+      return () => observer.disconnect()
+    }, [updateCanvasSize])
+
+    // Image fills canvas exactly (aspect ratios match after resize)
+    const imageFit = bgImage
+      ? { x: 0, y: 0, width: canvasWidth, height: canvasHeight }
+      : null
 
     useEffect(() => {
       setBgColor(backgroundColor)
@@ -172,12 +169,12 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
 
     useImperativeHandle(ref, () => ({
       addText: (text: string) => {
-        const nextText = createTextObject(text, width, height)
+        const nextText = createTextObject(text, canvasWidth, canvasHeight)
         setTexts((currentTexts) => [...currentTexts, nextText])
         setSelectedId(nextText.id)
       },
       addSticker: (emoji: string) => {
-        const nextSticker = createStickerObject(emoji, width, height)
+        const nextSticker = createStickerObject(emoji, canvasWidth, canvasHeight)
         setTexts((currentTexts) => [...currentTexts, nextSticker])
         setSelectedId(nextSticker.id)
       },
@@ -203,7 +200,7 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
         setTexts([])
         setSelectedId(null)
       },
-    }), [height, onExport, updateText, width])
+    }), [canvasHeight, canvasWidth, onExport, updateText])
 
     const handleStagePointerDown = (
       event: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
@@ -345,10 +342,11 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
     }
 
     return (
+      <div ref={wrapperRef} className="w-full">
       <Stage
         ref={stageRef}
-        width={width}
-        height={height}
+        width={canvasWidth}
+        height={canvasHeight}
         onMouseDown={handleStagePointerDown}
         onTouchStart={handleStagePointerDown}
         className="overflow-hidden rounded-[10px] bg-[#000000]"
@@ -358,8 +356,8 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
             name="canvas-background"
             x={0}
             y={0}
-            width={width}
-            height={height}
+            width={canvasWidth}
+            height={canvasHeight}
             fill={bgColor}
           />
           {bgImage && imageFit ? (
@@ -437,6 +435,7 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
           />
         </Layer>
       </Stage>
+      </div>
     )
   },
 )

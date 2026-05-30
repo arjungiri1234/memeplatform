@@ -1,5 +1,22 @@
 export type Locale = 'en' | 'ne' | 'hi' | 'ru' | 'zh'
 
+export interface GenerateMemeInput {
+  userPrompt: string
+  language: Locale
+  userId: string
+}
+
+export interface GeminiTextResponse {
+  imagePrompt: string
+  captions: string[]
+}
+
+export interface GenerateMemeOutput {
+  imageUrl: string
+  captions: string[]
+  imagePrompt: string
+}
+
 export interface MemeWithProfile {
   id: string
   user_id: string
