@@ -101,7 +101,7 @@ export default function EditorToolbar({
             }}
             onBlur={(event) => {
               if (!event.target.value.trim()) {
-                onTextChange(selectedText.id, { text: 'Text' })
+                onTextChange(selectedText.id, { text: 'ADD YOUR CAPTION' })
               }
             }}
             placeholder="Type your text..."
