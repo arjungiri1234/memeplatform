@@ -46,8 +46,6 @@ export function useAuth() {
   } = useAuthStore()
 
   useEffect(() => {
-    let isMounted = true
-
     async function hydrateSession() {
       if (hydrationRan) return
       hydrationRan = true
@@ -109,7 +107,6 @@ export function useAuth() {
     })
 
     return () => {
-      isMounted = false
       unsubscribe()
     }
   }, [
