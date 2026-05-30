@@ -1,70 +1,121 @@
 import { useCallback, useState } from 'react'
-import { generateMemeAI } from '../lib/ai/provider'
 import type { MemeAIResult } from '../lib/types'
 import { useAuth } from './useAuth'
 
-interface GenerateOptions {
-  userPrompt: string
-  language: string
+const VALID_LANGUAGES = ['en', 'ne', 'hi', 'ru', 'zh'] as const
+const TIMEOUT_MS = 30_000
+
+type ValidLanguage = (typeof VALID_LANGUAGES)[number]
+
+function isValidLanguage(lang: string): lang is ValidLanguage {
+  return (VALID_LANGUAGES as readonly string[]).includes(lang)
 }
 
-interface UseMemeGenerationResult {
-  generating: boolean
-  error: string | null
-  generate: (options: GenerateOptions) => Promise<MemeAIResult | null>
-  reset: () => void
+function extractErrorMessage(body: unknown, fallback: string): string {
+  if (typeof body === 'object' && body !== null && 'message' in body) {
+    const { message } = body as { message: unknown }
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  return fallback
 }
 
-export function useMemeGeneration(): UseMemeGenerationResult {
-  const { user, session } = useAuth()
-  const [generating, setGenerating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function useMemeGeneration() {
+  const { session } = useAuth()
 
-  const reset = useCallback(() => {
-    setGenerating(false)
-    setError(null)
-  }, [])
+  const [generating, setGenerating]           = useState(false)
+  const [error, setError]                     = useState<string | null>(null)
+  const [result, setResult]                   = useState<MemeAIResult | null>(null)
+  const [selectedCaption, setSelectedCaption] = useState<string | null>(null)
 
-  const generate = useCallback(
-    async ({ userPrompt, language }: GenerateOptions): Promise<MemeAIResult | null> => {
-      const prompt = userPrompt.trim()
-
-      if (!prompt) {
-        setError('Describe your meme first')
+  const generateMeme = useCallback(
+    async (userPrompt: string, language: string): Promise<MemeAIResult | null> => {
+      // 1. Auth check
+      if (!session?.access_token) {
+        setError('Please sign in first')
         return null
       }
 
-      if (!user || !session?.access_token) {
-        setError('Sign in to generate a meme')
+      // 2. Input validation
+      if (!userPrompt.trim()) {
+        setError('Please enter a prompt')
         return null
       }
 
+      if (!isValidLanguage(language)) {
+        setError('Invalid language selected')
+        return null
+      }
+
+      // 3. Start loading
       setGenerating(true)
       setError(null)
+      setResult(null)
+
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
       try {
-        const result = await generateMemeAI({
-          userPrompt: prompt,
-          language,
-          userId: user.id,
-          accessToken: session.access_token,
-        })
+        // 4. Call Edge Function
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-meme`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ userPrompt: userPrompt.trim(), language }),
+            signal: controller.signal,
+          },
+        )
 
+        clearTimeout(timeout)
+
+        // 5. Handle error responses
+        if (!response.ok) {
+          const body: unknown = await response.json().catch(() => ({}))
+          const message = response.status === 504
+            ? 'Generation timed out — please try again'
+            : extractErrorMessage(body, 'Failed to generate meme')
+          setError(message)
+          setGenerating(false)
+          return null
+        }
+
+        // 6. Parse success
+        const data: MemeAIResult = await response.json() as MemeAIResult
+        setResult(data)
         setGenerating(false)
-        return result
+        return data
       } catch {
-        setError('Failed to generate meme, please try again')
+        // 7. Network error or AbortController timeout
+        clearTimeout(timeout)
+        setError('Something went wrong, please try again')
         setGenerating(false)
         return null
       }
     },
-    [session?.access_token, user],
+    [session?.access_token],
   )
+
+  const selectCaption = useCallback((caption: string): void => {
+    setSelectedCaption(caption)
+  }, [])
+
+  const reset = useCallback((): void => {
+    setGenerating(false)
+    setError(null)
+    setResult(null)
+    setSelectedCaption(null)
+  }, [])
 
   return {
     generating,
     error,
-    generate,
+    result,
+    selectedCaption,
+    generateMeme,
+    selectCaption,
     reset,
   }
 }
