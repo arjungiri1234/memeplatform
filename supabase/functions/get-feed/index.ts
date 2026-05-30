@@ -7,6 +7,7 @@ const SUPPORTED_LANGUAGES = ['en', 'ne', 'hi', 'ru', 'zh'] as const
 
 interface FeedRow {
   id: string
+  user_id: string
   title: string | null
   image_url: string
   language: string
@@ -50,6 +51,7 @@ function normalizeProfile(
 function normalizeMeme(row: FeedRow): MemeWithProfile {
   return {
     id: row.id,
+    user_id: row.user_id,
     title: row.title,
     image_url: row.image_url,
     language: row.language,
@@ -90,6 +92,7 @@ serve(async (req: Request): Promise<Response> => {
       .from('memes')
       .select(`
         id,
+        user_id,
         title,
         image_url,
         language,
