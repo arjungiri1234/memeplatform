@@ -24,12 +24,24 @@ export interface TextObject {
   fill: string
   stroke: string
   strokeWidth: number
+  opacity: number
   draggable: true
 }
+
+export type HorizontalPosition = 'left' | 'center' | 'right'
+export type VerticalPosition = 'top' | 'middle' | 'bottom'
 
 export interface MemeEditorHandle {
   addText: (text: string) => void
   addSticker: (emoji: string) => void
+  duplicateText: (id: string) => void
+  positionText: (
+    id: string,
+    position: {
+      horizontal?: HorizontalPosition
+      vertical?: VerticalPosition
+    },
+  ) => void
   updateText: (id: string, changes: Partial<TextObject>) => void
   deleteText: (id: string) => void
   exportCanvas: () => string
@@ -46,7 +58,7 @@ interface MemeEditorProps {
 const DEFAULT_ASPECT = 4 / 3
 const MIN_WIDTH = 300
 const DEFAULT_BACKGROUND = '#000000'
-const DEFAULT_TEXT = 'NEW TEXT'
+const DEFAULT_TEXT = 'ADD YOUR CAPTION'
 
 function createTextObject(text: string, w: number, h: number): TextObject {
   return {
@@ -59,6 +71,7 @@ function createTextObject(text: string, w: number, h: number): TextObject {
     fill: '#ffffff',
     stroke: '#000000',
     strokeWidth: 2,
+    opacity: 1,
     draggable: true,
   }
 }
@@ -74,6 +87,7 @@ function createStickerObject(emoji: string, w: number, h: number): TextObject {
     fill: '#ffffff',
     stroke: '#000000',
     strokeWidth: 0,
+    opacity: 1,
     draggable: true,
   }
 }
@@ -178,6 +192,58 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
         setTexts((currentTexts) => [...currentTexts, nextSticker])
         setSelectedId(nextSticker.id)
       },
+      duplicateText: (id: string) => {
+        const sourceText = texts.find((text) => text.id === id)
+
+        if (!sourceText) {
+          return
+        }
+
+        const duplicate = {
+          ...sourceText,
+          id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          x: sourceText.x + 16,
+          y: sourceText.y + 16,
+        }
+
+        setTexts((currentTexts) => [...currentTexts, duplicate])
+        setSelectedId(duplicate.id)
+      },
+      positionText: (id, position) => {
+        const node = textNodeRefs.current[id]
+        const nodeWidth = node?.width() ?? 240
+        const nodeHeight = node?.height() ?? 48
+        const edgePadding = 24
+
+        setTexts((currentTexts) =>
+          currentTexts.map((text) => {
+            if (text.id !== id) {
+              return text
+            }
+
+            let x = text.x
+            let y = text.y
+
+            if (position.horizontal === 'left') {
+              x = edgePadding
+            } else if (position.horizontal === 'center') {
+              x = Math.max(0, (canvasWidth - nodeWidth) / 2)
+            } else if (position.horizontal === 'right') {
+              x = Math.max(0, canvasWidth - nodeWidth - edgePadding)
+            }
+
+            if (position.vertical === 'top') {
+              y = edgePadding
+            } else if (position.vertical === 'middle') {
+              y = Math.max(0, (canvasHeight - nodeHeight) / 2)
+            } else if (position.vertical === 'bottom') {
+              y = Math.max(0, canvasHeight - nodeHeight - edgePadding)
+            }
+
+            return { ...text, x, y }
+          }),
+        )
+      },
       updateText: (id: string, changes: Partial<TextObject>) => {
         updateText(id, changes)
       },
@@ -200,7 +266,7 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
         setTexts([])
         setSelectedId(null)
       },
-    }), [canvasHeight, canvasWidth, onExport, updateText])
+    }), [canvasHeight, canvasWidth, onExport, texts, updateText])
 
     const handleStagePointerDown = (
       event: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
@@ -387,6 +453,7 @@ const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
               fill={text.fill}
               stroke={text.stroke}
               strokeWidth={text.strokeWidth}
+              opacity={text.opacity}
               draggable={text.draggable}
               onClick={() => {
                 if (selectedId === text.id) {
