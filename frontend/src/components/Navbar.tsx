@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ROUTES } from '../lib/constants'
+import { motion, useReducedMotion } from 'framer-motion'
+import { getLoginRoute, ROUTES } from '../lib/constants'
 import { useAuth } from '../hooks/useAuth'
-import Button from './ui/Button'
 
 const NAV_LINKS = [
-  { href: ROUTES.FEED, labelKey: 'nav.feed' },
-  { href: ROUTES.CREATE, labelKey: 'nav.create' },
+  { href: ROUTES.FEED, labelKey: 'nav.feed', requiresAuth: true },
+  { href: ROUTES.CREATE, labelKey: 'nav.create', requiresAuth: true },
 ] as const
 
 function getInitials(username: string | null | undefined): string {
@@ -24,7 +24,16 @@ export default function Navbar() {
   const { t } = useTranslation()
   const { profile, loading, isAuthenticated, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const shouldReduceMotion = useReducedMotion() ?? false
+
+  useEffect(() => {
+    if (shouldReduceMotion) return
+    const onScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [shouldReduceMotion])
   const username = profile?.username ?? 'User'
   const initials = getInitials(profile?.username)
 
@@ -52,22 +61,32 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 h-20 border-b-2 border-[#2a2633] bg-[#0f0f0f]/90 backdrop-blur-[12px]">
-      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-5 md:px-16">
+    <motion.header
+      className={`sticky top-0 z-50 h-16 border-b ${scrolled ? 'backdrop-blur-[12px]' : ''}`}
+      animate={shouldReduceMotion
+        ? { backgroundColor: '#0a0a0a', borderBottomColor: '#1e1e1e' }
+        : {
+            backgroundColor: scrolled ? '#0a0a0a' : 'rgba(10,10,10,0)',
+            borderBottomColor: scrolled ? '#1e1e1e' : 'rgba(30,30,30,0)',
+          }
+      }
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      <div className="relative flex h-full w-full items-center justify-between px-5 md:px-10">
         <Link
           to={ROUTES.HOME}
-          className="group flex items-center gap-2 rounded-btn px-2 py-1 outline-none transition-transform duration-[120ms] hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#d0bcff]"
+          aria-label="memeit home"
+          className="group flex items-center rounded-btn outline-none transition-opacity duration-[120ms] hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#00e676]"
         >
-          <span className="text-2xl leading-none text-[#ff7a2f] transition-transform duration-[120ms] group-hover:rotate-12 group-hover:scale-110">
-            ^
-          </span>
-          <span className="font-display text-2xl font-bold tracking-normal text-[#d0bcff] transition-colors duration-[120ms] group-hover:text-[#e9ddff]">
-            memeit
-          </span>
+          <img
+            src="/memeit-logo.png"
+            alt="memeit"
+            className="h-16 w-auto object-contain"
+          />
         </Link>
 
-        <nav className="hidden items-center gap-2 sm:flex" aria-label="Main navigation">
-          {NAV_LINKS.map(({ href, labelKey }) => {
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 sm:flex" aria-label="Main navigation">
+          {NAV_LINKS.filter((link) => !link.requiresAuth || isAuthenticated).map(({ href, labelKey }) => {
             const isActive = pathname === href
 
             return (
@@ -75,11 +94,11 @@ export default function Navbar() {
                 key={href}
                 to={href}
                 className={[
-                  'rounded-btn px-3 py-2 font-display text-base font-bold transition-all duration-[120ms]',
-                  'outline-none focus-visible:ring-2 focus-visible:ring-[#d0bcff]',
+                  'inline-flex h-10 items-center rounded-btn border px-5 text-[13px] font-semibold transition-all duration-[120ms]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676]',
                   isActive
-                    ? 'bg-[#201f1f] text-[#d0bcff] ring-1 ring-[#494454]'
-                    : 'text-[#cbc3d7] hover:-translate-y-0.5 hover:bg-[#201f1f] hover:text-[#e9ddff]',
+                    ? 'border-[#00e676]/40 bg-[#00e676]/10 text-[#00e676]'
+                    : 'border-[#2a2a2a] bg-transparent text-[#a1a1a1] hover:border-[#00e676]/60 hover:bg-[#00e676]/10 hover:text-[#00e676]',
                 ].join(' ')}
               >
                 {t(labelKey)}
@@ -88,7 +107,7 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {loading ? (
             <div className="h-10 w-10 animate-pulse rounded-full bg-[#201f1f]" />
           ) : isAuthenticated ? (
@@ -142,23 +161,20 @@ export default function Navbar() {
             <>
               <Link
                 to={ROUTES.LOGIN}
-                className="hidden h-9 items-center rounded-btn border border-[#494454] bg-transparent px-4 text-sm font-bold text-[#cbc3d7] transition-all duration-[120ms] hover:-translate-y-0.5 hover:border-[#d0bcff] hover:bg-[#201f1f] hover:text-[#e9ddff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d0bcff] sm:inline-flex"
+                className="hidden h-10 items-center rounded-btn border border-[#2a2a2a] bg-transparent px-5 text-[13px] font-semibold text-[#a1a1a1] transition-all duration-[120ms] hover:border-[#00e676]/60 hover:bg-[#00e676]/10 hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:bg-[#00e676]/15 sm:inline-flex"
               >
                 Sign in
               </Link>
-              <Link to={ROUTES.LOGIN} className="inline-flex">
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="border border-[#d0bcff] bg-[#d0bcff] px-5 font-bold text-[#23005c] shadow-none transition-all duration-[120ms] hover:-translate-y-0.5 hover:bg-[#e9ddff] hover:ring-2 hover:ring-[#d0bcff]/30 active:translate-y-0"
-                >
-                  Get Started
-                </Button>
+              <Link
+                to={getLoginRoute({ mode: 'signup', redirectTo: ROUTES.CREATE })}
+                className="inline-flex h-10 items-center rounded-btn border border-[#00e676] bg-[#00c96b] px-5 text-[13px] font-semibold text-[#052e1a] transition-all duration-[120ms] hover:-translate-y-0.5 hover:bg-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] active:translate-y-0 active:bg-[#00b85f]"
+              >
+                Get Started
               </Link>
             </>
           )}
         </div>
       </div>
-    </header>
+    </motion.header>
   )
 }

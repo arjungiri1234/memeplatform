@@ -1,16 +1,13 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ROUTES } from '../lib/constants'
+import toast from 'react-hot-toast'
+import {
+  AUTH_REDIRECT_STORAGE_KEY,
+  getSafeAuthRedirect,
+  ROUTES,
+} from '../lib/constants'
 import { getSession } from '../lib/supabaseClient'
-
-function Spinner() {
-  return (
-    <div
-      className="h-10 w-10 animate-spin rounded-full border-2 border-accent border-t-transparent"
-      aria-hidden="true"
-    />
-  )
-}
+import TopLoadingBar from '../components/TopLoadingBar'
 
 function hasAuthError(): boolean {
   const searchParams = new URLSearchParams(window.location.search)
@@ -38,7 +35,12 @@ export default function AuthCallbackPage() {
       }
 
       if (session) {
-        navigate(ROUTES.FEED, { replace: true })
+        const redirectTo = getSafeAuthRedirect(
+          window.sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY),
+        )
+        window.sessionStorage.removeItem(AUTH_REDIRECT_STORAGE_KEY)
+        toast.success('Welcome to memeit!', { id: 'signin' })
+        navigate(redirectTo, { replace: true })
       }
     }
 
@@ -58,10 +60,8 @@ export default function AuthCallbackPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="flex flex-col items-center gap-4">
-        <Spinner />
-        <p className="text-sm text-text-secondary">Signing you in...</p>
-      </div>
+      <TopLoadingBar />
+      <p className="text-sm text-text-secondary">Signing you in...</p>
     </main>
   )
 }

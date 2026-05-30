@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ROUTES } from '../lib/constants'
+import toast from 'react-hot-toast'
+import { getSafeAuthRedirect, ROUTES } from '../lib/constants'
 import {
   ensureProfile,
   getSession,
@@ -136,7 +137,11 @@ export function useAuth() {
   }, [setError, setLoading])
 
   const signInWithEmail = useCallback(
-    async (email: string, password: string): Promise<void> => {
+    async (
+      email: string,
+      password: string,
+      redirectTo: string = ROUTES.FEED,
+    ): Promise<void> => {
       setLoading(true)
       setError(null)
 
@@ -148,14 +153,20 @@ export function useAuth() {
         return
       }
 
-      navigate(ROUTES.FEED)
+      toast.success('Welcome back!', { id: 'signin' })
+      navigate(getSafeAuthRedirect(redirectTo))
       setLoading(false)
     },
     [navigate, setError, setLoading],
   )
 
   const signUpWithEmail = useCallback(
-    async (email: string, password: string, username: string): Promise<void> => {
+    async (
+      email: string,
+      password: string,
+      username: string,
+      redirectTo: string = ROUTES.FEED,
+    ): Promise<void> => {
       setLoading(true)
       setError(null)
 
@@ -191,7 +202,8 @@ export function useAuth() {
         return
       }
 
-      navigate(ROUTES.FEED)
+      toast.success('Account created — welcome to memeit!', { id: 'signup' })
+      navigate(getSafeAuthRedirect(redirectTo))
       setLoading(false)
     },
     [navigate, setError, setLoading],
@@ -207,6 +219,7 @@ export function useAuth() {
       reset()
       setLoading(false)
       isSigningOutRef.current = false
+      toast.success('You\'ve been signed out.', { id: 'signout' })
       navigate(ROUTES.HOME)
     }
   }, [navigate, reset, setLoading])

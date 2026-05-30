@@ -4,7 +4,10 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../hooks/useAuth'
-import { ROUTES } from '../lib/constants'
+import {
+  AUTH_REDIRECT_STORAGE_KEY,
+  getSafeAuthRedirect,
+} from '../lib/constants'
 
 type Mode = 'signin' | 'signup'
 
@@ -56,7 +59,9 @@ export default function LoginPage() {
     isAuthenticated,
   } = useAuth()
 
-  const [mode, setMode] = useState<Mode>('signin')
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -65,9 +70,10 @@ export default function LoginPage() {
     searchParams.get('error') === 'auth_failed'
       ? 'Could not complete sign in. Please try again.'
       : null
+  const redirectTo = getSafeAuthRedirect(searchParams.get('redirect'))
 
   if (isAuthenticated) {
-    return <Navigate to={ROUTES.FEED} replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   function toggleMode() {
@@ -98,6 +104,7 @@ export default function LoginPage() {
 
   async function handleGoogleSignIn() {
     setFormErrors({})
+    window.sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, redirectTo)
     await signInWithGoogle()
   }
 
@@ -106,7 +113,7 @@ export default function LoginPage() {
 
     if (mode === 'signin') {
       setFormErrors({})
-      await signInWithEmail(email, password)
+      await signInWithEmail(email, password, redirectTo)
       return
     }
 
@@ -114,18 +121,25 @@ export default function LoginPage() {
       return
     }
 
-    await signUpWithEmail(email, password, username)
+    await signUpWithEmail(email, password, username, redirectTo)
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-text-primary">
-            Meme Platform
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
+          <img
+            src="/memeit-logo.png"
+            alt="memeit"
+            className="mx-auto h-28 w-auto object-contain"
+          />
+          <h1 className="mt-4 text-xl font-semibold text-text-primary">
             {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+          </h1>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-text-secondary">
+            {mode === 'signin'
+              ? 'Sign in to continue creating with memeit.'
+              : 'Join memeit and start making memes in minutes.'}
           </p>
         </div>
 
@@ -197,7 +211,7 @@ export default function LoginPage() {
               fullWidth
               loading={loading}
               type="submit"
-              className="mt-1"
+              className="mt-1 border border-[#00e676] !bg-[#00c96b] font-semibold !text-[#052e1a] transition-all duration-[120ms] hover:!bg-[#00e676] focus-visible:!ring-[#00e676] active:!bg-[#00b85f]"
             >
               {mode === 'signin' ? 'Sign in' : 'Sign up'}
             </Button>
@@ -211,7 +225,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={toggleMode}
                   disabled={loading}
-                  className="font-medium text-accent transition-colors hover:text-accent-hover disabled:opacity-50"
+                  className="font-medium text-[#00c96b] transition-colors duration-[120ms] hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] disabled:opacity-50"
                 >
                   Sign up
                 </button>
@@ -223,7 +237,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={toggleMode}
                   disabled={loading}
-                  className="font-medium text-accent transition-colors hover:text-accent-hover disabled:opacity-50"
+                  className="font-medium text-[#00c96b] transition-colors duration-[120ms] hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] disabled:opacity-50"
                 >
                   Sign in
                 </button>

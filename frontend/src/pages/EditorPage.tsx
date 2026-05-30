@@ -170,7 +170,7 @@ function CreateTabContent({
             aria-hidden="true"
           />
         ) : null}
-        {generating ? 'Generating...' : 'Generate meme ✨'}
+        {generating ? 'Generating...' : 'Generate meme'}
       </button>
 
       {error ? (
@@ -641,7 +641,7 @@ export default function EditorPage() {
                       aria-hidden="true"
                     />
                   ) : null}
-                  {publishing ? 'Publishing...' : 'Publish meme 🚀'}
+                  {publishing ? 'Publishing...' : 'Publish meme'}
                 </button>
                 {publishError ? (
                   <p className="mt-2 text-[13px] leading-[1.5] text-[#ef4444]">

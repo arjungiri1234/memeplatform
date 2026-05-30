@@ -22,3 +22,34 @@ export const ROUTES = {
   LOGIN: '/login',
   AUTH_CALLBACK: '/auth/callback',
 } as const
+
+export const AUTH_REDIRECT_STORAGE_KEY = 'memeit-auth-redirect'
+
+export function getLoginRoute({
+  mode,
+  redirectTo,
+}: {
+  mode?: 'signin' | 'signup'
+  redirectTo?: string
+} = {}): string {
+  const searchParams = new URLSearchParams()
+
+  if (mode) {
+    searchParams.set('mode', mode)
+  }
+
+  if (redirectTo) {
+    searchParams.set('redirect', redirectTo)
+  }
+
+  const query = searchParams.toString()
+  return query ? `${ROUTES.LOGIN}?${query}` : ROUTES.LOGIN
+}
+
+export function getSafeAuthRedirect(redirectTo: string | null | undefined): string {
+  if (!redirectTo || !redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+    return ROUTES.FEED
+  }
+
+  return redirectTo
+}
