@@ -2,6 +2,7 @@ export type Locale = 'en' | 'ne' | 'hi' | 'ru' | 'zh'
 
 export interface MemeWithProfile {
   id: string
+  user_id: string
   title: string | null
   image_url: string
   language: string

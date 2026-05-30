@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export interface MemeCardProps {
   id: string
   imageUrl: string
@@ -5,6 +7,9 @@ export interface MemeCardProps {
   language: string
   viewCount: number
   createdAt: string
+  canDelete?: boolean
+  deleting?: boolean
+  onDelete?: (id: string) => void
   profile: {
     username: string
     avatarUrl: string | null
@@ -91,14 +96,24 @@ export function MemeCardSkeleton() {
 }
 
 export default function MemeCard({
+  id,
   imageUrl,
   title,
   language,
   createdAt,
+  canDelete = false,
+  deleting = false,
+  onDelete,
   profile,
 }: MemeCardProps) {
+  const [optionsOpen, setOptionsOpen] = useState(false)
   const badgeColor = LANGUAGE_BADGE_COLORS[language] ?? LANGUAGE_BADGE_COLORS.en
   const languageLabel = LANGUAGE_LABELS[language] ?? language.toUpperCase()
+
+  const handleDelete = () => {
+    setOptionsOpen(false)
+    onDelete?.(id)
+  }
 
   return (
     <article className="overflow-hidden rounded-[10px] border border-[#2a2a2a] bg-[#111111] transition-colors duration-[120ms] hover:border-[#3a3a3a]">
@@ -133,13 +148,32 @@ export default function MemeCard({
           {languageLabel}
         </span>
 
-        <button
-          type="button"
-          aria-label="Open meme options"
-          className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
-        >
-          ...
-        </button>
+        {canDelete ? (
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Open meme options"
+              aria-expanded={optionsOpen}
+              onClick={() => setOptionsOpen((isOpen) => !isOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]"
+            >
+              ...
+            </button>
+
+            {optionsOpen ? (
+              <div className="absolute right-0 top-10 z-20 w-48 rounded-[10px] border border-[#2a2a2a] bg-[#111111] p-1.5 shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex h-10 w-full items-center rounded-[6px] px-3 text-left text-sm font-medium leading-[1.5] text-[#ef4444] transition-colors duration-[120ms] hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444] active:bg-[#ef4444]/15 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleting ? 'Deleting...' : 'Delete meme'}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <div className="bg-[#1a1a1a] px-4">

@@ -31,6 +31,7 @@ export interface Meme {
 
 export interface MemeWithProfile {
   id: string
+  user_id: string
   title: string | null
   image_url: string
   language: string

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
+import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import MemeCard, { MemeCardSkeleton } from '../components/MemeCard'
 import { useAuth } from '../hooks/useAuth'
 import { useFeed } from '../hooks/useFeed'
@@ -603,6 +604,8 @@ function EmptyFeedState() {
 
 function FeedPage() {
   const [sortMode, setSortMode] = useState<SortMode>('latest')
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const { user: currentUser } = useAuth()
   const {
     memes,
     loading,
@@ -610,8 +613,10 @@ function FeedPage() {
     error,
     hasMore,
     language,
+    deletingMemeId,
     loadMore,
     filterByLanguage,
+    deleteMeme,
     refresh,
   } = useFeed()
   const languageFilter = (language ?? 'all') as LanguageFilter
@@ -626,6 +631,14 @@ function FeedPage() {
 
   const handleRetry = () => {
     void refresh()
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return
+
+    void deleteMeme(deleteTargetId).then(() => {
+      setDeleteTargetId(null)
+    })
   }
 
   return (
@@ -657,6 +670,9 @@ function FeedPage() {
                 language={meme.language}
                 viewCount={meme.view_count}
                 createdAt={meme.created_at}
+                canDelete={meme.user_id === currentUser?.id}
+                deleting={deletingMemeId === meme.id}
+                onDelete={setDeleteTargetId}
                 profile={{
                   username: meme.profiles.username,
                   avatarUrl: meme.profiles.avatar_url,
@@ -695,6 +711,13 @@ function FeedPage() {
       >
         +
       </Link>
+
+      <DeleteConfirmModal
+        isOpen={deleteTargetId !== null}
+        deleting={deletingMemeId === deleteTargetId}
+        onCancel={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </main>
   )
 }

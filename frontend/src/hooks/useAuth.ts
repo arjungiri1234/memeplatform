@@ -46,8 +46,6 @@ export function useAuth() {
   } = useAuthStore()
 
   useEffect(() => {
-    let isMounted = true
-
     async function hydrateSession() {
       if (hydrationRan) return
       hydrationRan = true
@@ -55,23 +53,23 @@ export function useAuth() {
       setLoading(true)
       const currentSession = await getSession()
 
-      if (!isMounted) {
-        return
-      }
-
+      // Update global store unconditionally — Zustand state is safe to set
+      // even after unmount. Must NOT gate setLoading(false) behind isMounted:
+      // StrictMode unmounts before getSession() resolves, which would leave
+      // loading stuck at true forever (hydrationRan blocks any retry).
       if (currentSession) {
         setUser(currentSession.user)
         setSession(currentSession)
       }
-
-      // Unblock ProtectedRoute immediately — profile loads in the background
       setLoading(false)
 
+      // ensureProfile and setProfile are safe to call after unmount — they update
+      // global Zustand state, not component-local state. isMounted guard here would
+      // prevent the profile from ever loading in StrictMode (double-invoke unmounts
+      // before the async call completes, and hydrationRan blocks any retry).
       if (currentSession) {
         const currentProfile = await ensureProfile(currentSession.user)
-        if (isMounted) {
-          setProfile(currentProfile)
-        }
+        setProfile(currentProfile)
       }
     }
 
@@ -80,10 +78,7 @@ export function useAuth() {
     const unsubscribe = onAuthStateChange((event, nextSession) => {
       if (event === 'SIGNED_IN' && nextSession) {
         void ensureProfile(nextSession.user).then((nextProfile) => {
-          if (!isMounted) {
-            return
-          }
-
+          // All setters update global Zustand store — safe to call after unmount
           setUser(nextSession.user)
           setProfile(nextProfile)
           setSession(nextSession)
@@ -112,7 +107,6 @@ export function useAuth() {
     })
 
     return () => {
-      isMounted = false
       unsubscribe()
     }
   }, [

@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
+import {
+  MEME_FIELDS,
+  PROFILE_FIELDS,
+  PROFILE_ID_FIELDS,
+  TEMPLATE_FIELDS,
+} from './selectFields'
 import type { AuthResult, FeedPage, Meme, Profile, Template } from './types'
 
 type DbProfile = Profile & Record<string, unknown>
@@ -173,7 +179,7 @@ export async function signUpWithEmail(
   try {
     const { data: existingProfile, error: usernameError } = await supabase
       .from('profiles')
-      .select('id')
+      .select(PROFILE_ID_FIELDS)
       .eq('username', username)
       .maybeSingle()
 
@@ -267,8 +273,28 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(PROFILE_FIELDS)
       .eq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      return null
+    }
+
+    return data
+  } catch {
+    return null
+  }
+}
+
+export async function getProfileByUsername(
+  username: string,
+): Promise<Profile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(PROFILE_FIELDS)
+      .eq('username', username)
       .maybeSingle()
 
     if (error) {
@@ -318,7 +344,7 @@ export async function getTemplates(category?: string | null): Promise<Template[]
   try {
     let query = supabase
       .from('templates')
-      .select('*')
+      .select(TEMPLATE_FIELDS)
       .order('created_at', { ascending: true })
 
     if (category != null) {
@@ -365,6 +391,33 @@ export async function uploadMemeImage(
   }
 }
 
+export async function uploadAvatar(
+  userId: string,
+  file: File,
+): Promise<string> {
+  const extension = file.name.split('.').pop() ?? 'png'
+  const filePath = `${userId}/avatar.${extension}`
+
+  try {
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, {
+        contentType: file.type || 'image/png',
+        upsert: true,
+      })
+
+    if (error) {
+      throw error
+    }
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+
+    return `${data.publicUrl}?v=${Date.now()}`
+  } catch {
+    throw new Error('Failed to upload avatar')
+  }
+}
+
 export async function insertMeme(data: {
   userId: string
   imageUrl: string
@@ -382,7 +435,7 @@ export async function insertMeme(data: {
         language: data.language,
         template_id: data.templateId ?? null,
       })
-      .select('*')
+      .select(MEME_FIELDS)
       .single()
 
     if (error) {
@@ -392,6 +445,43 @@ export async function insertMeme(data: {
     return meme
   } catch {
     throw new Error('Failed to publish meme')
+  }
+}
+
+export async function getUserMemes(userId: string): Promise<Meme[]> {
+  try {
+    const { data, error } = await supabase
+      .from('memes')
+      .select(MEME_FIELDS)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return data
+  } catch {
+    throw new Error('Failed to load memes')
+  }
+}
+
+export async function deleteUserMeme(
+  memeId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('memes')
+      .delete()
+      .eq('id', memeId)
+      .eq('user_id', userId)
+
+    if (error) {
+      throw error
+    }
+  } catch {
+    throw new Error('Failed to delete meme')
   }
 }
 
@@ -411,7 +501,7 @@ export async function ensureProfile(user: User): Promise<Profile | null> {
         avatar_url: null,
         locale: 'en',
       })
-      .select('*')
+      .select(PROFILE_FIELDS)
       .single()
 
     if (error) {
@@ -439,7 +529,7 @@ export async function updateProfile(
       .from('profiles')
       .update(updateData)
       .eq('id', userId)
-      .select('*')
+      .select(PROFILE_FIELDS)
       .maybeSingle()
 
     if (error) {

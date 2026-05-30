@@ -501,24 +501,9 @@ export default function EditorPage() {
 
   const handleCreateAnother = useCallback(() => {
     resetPublish()
-    editorRef.current?.clearTexts()
-    setSelectedText(null)
-    setBackgroundColor('#000000')
-    setBackgroundImageUrl((currentUrl) => {
-      if (currentUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(currentUrl)
-      }
-
-      return null
-    })
-    setUploadedFileName(null)
-    setUploadError(null)
-    setTitle('')
-    setPrompt('')
-    setCaptions([])
     resetGeneration()
-    setActiveTab('create')
-  }, [resetGeneration, resetPublish])
+    navigate(ROUTES.CREATE)
+  }, [navigate, resetGeneration, resetPublish])
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-[#0a0a0a] px-4 py-6 text-[#ededed] sm:px-6 lg:px-8">

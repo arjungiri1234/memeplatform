@@ -1,8 +1,12 @@
 import { useCallback } from 'react'
-import { uploadMemeImage as uploadMemeImageClient } from '../lib/supabaseClient'
+import {
+  uploadAvatar as uploadAvatarClient,
+  uploadMemeImage as uploadMemeImageClient,
+} from '../lib/supabaseClient'
 
 interface UseUploadResult {
   uploadMemeImage: (userId: string, file: File) => Promise<string>
+  uploadAvatar: (userId: string, file: File) => Promise<string>
 }
 
 export function useUpload(): UseUploadResult {
@@ -13,7 +17,15 @@ export function useUpload(): UseUploadResult {
     [],
   )
 
+  const uploadAvatar = useCallback(
+    async (userId: string, file: File): Promise<string> => {
+      return uploadAvatarClient(userId, file)
+    },
+    [],
+  )
+
   return {
     uploadMemeImage,
+    uploadAvatar,
   }
 }
