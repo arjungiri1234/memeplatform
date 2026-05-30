@@ -29,6 +29,7 @@ export default function App() {
       <Route path={ROUTES.CREATE}  element={<Layout><ProtectedRoute><TemplatePickerPage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.EDITOR}  element={<Layout><ProtectedRoute><EditorPage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.PROFILE} element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
+      <Route path={`${ROUTES.PROFILE}/:username`} element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.LOGIN}   element={<LoginPage />} />
       <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallbackPage />} />
     </Routes>
