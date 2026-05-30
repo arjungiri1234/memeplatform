@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ShareDropdown from './ShareDropdown'
 
 export interface MemeCardProps {
   id: string
@@ -61,17 +62,6 @@ function getRelativeTime(value: string): string {
   return `${months}mo ago`
 }
 
-function ShareButton() {
-  return (
-    <button
-      type="button"
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#1a1a1a]"
-    >
-      <span aria-hidden="true">↗</span>
-      <span>Share</span>
-    </button>
-  )
-}
 
 export function MemeCardSkeleton() {
   return (
@@ -107,6 +97,7 @@ export default function MemeCard({
   profile,
 }: MemeCardProps) {
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const badgeColor = LANGUAGE_BADGE_COLORS[language] ?? LANGUAGE_BADGE_COLORS.en
   const languageLabel = LANGUAGE_LABELS[language] ?? language.toUpperCase()
 
@@ -192,7 +183,28 @@ export default function MemeCard({
       ) : null}
 
       <footer className="flex justify-end border-t border-[#2a2a2a] p-3">
-        <ShareButton />
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShareOpen((prev) => !prev)}
+            className={[
+              'inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] active:bg-[#1a1a1a]',
+              shareOpen
+                ? 'bg-[#1a1a1a] text-[#ededed]'
+                : 'text-[#a1a1a1] hover:bg-[#1a1a1a] hover:text-[#ededed]',
+            ].join(' ')}
+          >
+            <span aria-hidden="true">↗</span>
+            <span>Share</span>
+          </button>
+          <ShareDropdown
+            memeId={id}
+            title={title}
+            imageUrl={imageUrl}
+            isOpen={shareOpen}
+            onClose={() => setShareOpen(false)}
+          />
+        </div>
       </footer>
     </article>
   )
