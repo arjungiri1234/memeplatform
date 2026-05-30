@@ -6,7 +6,7 @@ import {
   PROFILE_ID_FIELDS,
   TEMPLATE_FIELDS,
 } from './selectFields'
-import type { AuthResult, FeedPage, Meme, Profile, Template } from './types'
+import type { AuthResult, FeedPage, Meme, MemeWithProfile, Profile, Template } from './types'
 
 type DbProfile = Profile & Record<string, unknown>
 type DbTemplate = Template & Record<string, unknown>
@@ -245,7 +245,6 @@ export async function signUpWithEmail(
 export async function signOut(): Promise<void> {
   try {
     const { error } = await supabase.auth.signOut()
-    localStorage.removeItem('memeit-auth')
 
     if (error) {
       throw new Error(getErrorMessage(error))
@@ -463,6 +462,21 @@ export async function getUserMemes(userId: string): Promise<Meme[]> {
     return data
   } catch {
     throw new Error('Failed to load memes')
+  }
+}
+
+export async function getMemeById(memeId: string): Promise<MemeWithProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('memes')
+      .select(`${MEME_FIELDS}, profiles(username, avatar_url)`)
+      .eq('id', memeId)
+      .single()
+
+    if (error) return null
+    return data as unknown as MemeWithProfile
+  } catch {
+    return null
   }
 }
 
