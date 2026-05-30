@@ -10,6 +10,7 @@ import EditorPage from './pages/EditorPage'
 import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
+import MemePage from './pages/MemePage'
 
 // Wraps every page that needs the top navigation bar.
 // LoginPage is excluded — it's a full-screen centered layout.
@@ -53,6 +54,7 @@ export default function App() {
       <Route path={`${ROUTES.PROFILE}/:username`} element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
       <Route path={ROUTES.LOGIN}   element={<LoginPage />} />
       <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallbackPage />} />
+      <Route path={`${ROUTES.MEME}/:memeId`} element={<Layout><MemePage /></Layout>} />
     </Routes>
     </>
   )

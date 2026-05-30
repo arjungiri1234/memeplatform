@@ -6,12 +6,14 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from 'react'
+import toast from 'react-hot-toast'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import CaptionSelector from '../components/CaptionSelector'
 import EditorToolbar from '../components/EditorToolbar'
 import MemeEditor from '../components/MemeEditor'
 import type { MemeEditorHandle, TextObject } from '../components/MemeEditor'
 import StickerPanel from '../components/StickerPanel'
+import TextStylePanel from '../components/TextStylePanel'
 import { useMemeGeneration } from '../hooks/useMemeGeneration'
 import { usePublish } from '../hooks/usePublish'
 import { ROUTES } from '../lib/constants'
@@ -19,16 +21,6 @@ import { validateMemeFile } from '../lib/fileValidation'
 import type { MemeAIResult } from '../lib/types'
 
 type EditorTab = 'create' | 'upload'
-
-const BACKGROUND_COLORS = [
-  { label: 'Black', value: '#000000', className: 'bg-[#000000]' },
-  { label: 'White', value: '#ffffff', className: 'bg-[#ffffff]' },
-  { label: 'Dark', value: '#1a1a2e', className: 'bg-[#1a1a2e]' },
-  { label: 'Red', value: '#7f1d1d', className: 'bg-[#7f1d1d]' },
-  { label: 'Green', value: '#14532d', className: 'bg-[#14532d]' },
-  { label: 'Blue', value: '#1e3a5f', className: 'bg-[#1e3a5f]' },
-  { label: 'Purple', value: '#3b0764', className: 'bg-[#3b0764]' },
-] as const
 
 const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
@@ -217,11 +209,13 @@ function CreateTabContent({
 
       {result ? (
         <>
-          <img
-            src={result.imageUrl}
-            alt="Generated meme preview"
-            className="w-full max-h-[120px] rounded-[8px] border border-[#2a2a2a] object-cover"
-          />
+          <div className="flex min-h-40 w-full items-center justify-center overflow-hidden rounded-[8px] border border-[#2a2a2a] bg-[#0a0a0a] p-2">
+            <img
+              src={result.imageUrl}
+              alt="Generated meme preview"
+              className="max-h-64 w-full object-contain"
+            />
+          </div>
           <CaptionSelector
             captions={result.captions}
             selectedCaption={selectedCaption}
@@ -336,51 +330,6 @@ function UploadTabContent({
   )
 }
 
-function BackgroundPicker({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (color: string) => void
-}) {
-  return (
-    <section className="space-y-3 rounded-[10px] border border-[#2a2a2a] bg-[#111111] p-4">
-      <h2 className="text-[13px] font-medium leading-[1.5] text-[#ededed]">
-        Background
-      </h2>
-      <div className="flex flex-wrap items-center gap-2">
-        {BACKGROUND_COLORS.map((color) => {
-          const isActive = value.toLowerCase() === color.value
-
-          return (
-            <button
-              key={color.value}
-              type="button"
-              onClick={() => onChange(color.value)}
-              aria-label={`Set background ${color.label}`}
-              className={[
-                'h-8 w-8 rounded-full border border-[#2a2a2a] transition duration-[120ms] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]',
-                color.className,
-                isActive ? 'ring-2 ring-[#7c3aed] ring-offset-2 ring-offset-[#111111]' : '',
-              ].join(' ')}
-            />
-          )
-        })}
-        <label className="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[#2a2a2a] bg-[#1a1a1a] transition duration-[120ms] hover:scale-110 focus-within:ring-2 focus-within:ring-[#7c3aed]">
-          <span className="text-[11px] font-medium text-[#a1a1a1]">+</span>
-          <input
-            type="color"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            aria-label="Choose custom background color"
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-        </label>
-      </div>
-    </section>
-  )
-}
-
 export default function EditorPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -405,7 +354,6 @@ export default function EditorPage() {
     () => (searchParams.get('mode') === 'upload' ? 'upload' : 'create'),
   )
   const [selectedText, setSelectedText] = useState<TextObject | null>(null)
-  const [backgroundColor, setBackgroundColor] = useState('#000000')
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(
     () => searchParams.get('imageUrl'),
   )
@@ -426,7 +374,7 @@ export default function EditorPage() {
   }, [backgroundImageUrl])
 
   const handleAddText = useCallback(() => {
-    editorRef.current?.addText('Text')
+    editorRef.current?.addText('ADD YOUR CAPTION')
   }, [])
 
   const handleTextChange = useCallback((
@@ -442,6 +390,17 @@ export default function EditorPage() {
   const handleDeleteText = useCallback((id: string) => {
     editorRef.current?.deleteText(id)
     setSelectedText(null)
+  }, [])
+
+  const handleDuplicateText = useCallback((id: string) => {
+    editorRef.current?.duplicateText(id)
+  }, [])
+
+  const handlePositionText = useCallback((
+    id: string,
+    position: Parameters<MemeEditorHandle['positionText']>[1],
+  ) => {
+    editorRef.current?.positionText(id, position)
   }, [])
 
   const handleExport = useCallback((_dataUrl: string) => {
@@ -522,6 +481,11 @@ export default function EditorPage() {
   }, [generateMeme, language, prompt, resetPublish])
 
   const handlePublish = useCallback(async () => {
+    if (!backgroundImageUrl) {
+      toast.error('Please upload your own image or generate one using AI.')
+      return
+    }
+
     const dataUrl = editorRef.current?.exportCanvas()
 
     if (!dataUrl) {
@@ -534,7 +498,7 @@ export default function EditorPage() {
       language,
       templateId: templateId ?? undefined,
     })
-  }, [language, publish, title])
+  }, [backgroundImageUrl, language, publish, templateId, title])
 
   const handleViewFeed = useCallback(() => {
     navigate(ROUTES.FEED)
@@ -583,7 +547,6 @@ export default function EditorPage() {
               <MemeEditor
                 ref={editorRef}
                 backgroundImage={backgroundImageUrl}
-                backgroundColor={backgroundColor}
                 onExport={handleExport}
                 onSelectionChange={setSelectedText}
               />
@@ -602,9 +565,12 @@ export default function EditorPage() {
 
             <div className="mt-4">
               <div className="mb-4 space-y-4">
-                <BackgroundPicker
-                  value={backgroundColor}
-                  onChange={setBackgroundColor}
+                <TextStylePanel
+                  selectedText={selectedText}
+                  onAddText={handleAddText}
+                  onDuplicateText={handleDuplicateText}
+                  onPositionText={handlePositionText}
+                  onTextChange={handleTextChange}
                 />
                 <StickerPanel onStickerSelect={handleStickerSelect} />
               </div>

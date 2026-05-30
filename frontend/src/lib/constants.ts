@@ -21,6 +21,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   LOGIN: '/login',
   AUTH_CALLBACK: '/auth/callback',
+  MEME: '/meme',
 } as const
 
 export const AUTH_REDIRECT_STORAGE_KEY = 'memeit-auth-redirect'
