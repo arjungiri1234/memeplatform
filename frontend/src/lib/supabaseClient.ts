@@ -214,7 +214,7 @@ export async function signUpWithEmail(
       }
     }
 
-    if (data.user) {
+    if (data.user && data.session) {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         username,

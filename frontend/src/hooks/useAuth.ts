@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getSafeAuthRedirect, ROUTES } from '../lib/constants'
+import {
+  getLoginRoute,
+  getSafeAuthRedirect,
+  ROUTES,
+} from '../lib/constants'
+import {
+  validateEmail,
+  validatePassword,
+  validateUsername,
+} from '../lib/authValidation'
 import {
   ensureProfile,
   getSession,
@@ -12,9 +21,6 @@ import {
   signUpWithEmail as signUpWithEmailClient,
 } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/
 
 // Ensures hydrateSession() runs once per page load, not once per useAuth() call.
 // Every component that calls useAuth() gets its own effect instance, and without
@@ -80,11 +86,17 @@ export function useAuth() {
       if (event === 'SIGNED_IN' && nextSession) {
         void ensureProfile(nextSession.user).then((nextProfile) => {
           // All setters update global Zustand store — safe to call after unmount
-          setUser(nextSession.user)
-          setProfile(nextProfile)
-          setSession(nextSession)
-          setError(null)
-          setLoading(false)
+          void getSession().then((currentSession) => {
+            if (currentSession?.access_token !== nextSession.access_token) {
+              return
+            }
+
+            setUser(nextSession.user)
+            setProfile(nextProfile)
+            setSession(nextSession)
+            setError(null)
+            setLoading(false)
+          })
         })
         return
       }
@@ -149,6 +161,7 @@ export function useAuth() {
 
       if (result.error) {
         setError(result.error)
+        toast.error(result.error, { id: 'signin-error' })
         setLoading(false)
         return
       }
@@ -166,47 +179,61 @@ export function useAuth() {
       password: string,
       username: string,
       redirectTo: string = ROUTES.FEED,
-    ): Promise<void> => {
+    ): Promise<boolean> => {
       setLoading(true)
       setError(null)
 
-      if (!EMAIL_PATTERN.test(email)) {
-        setError('Enter a valid email address')
+      const emailError = validateEmail(email)
+      const passwordError = validatePassword(password)
+      const usernameError = validateUsername(username)
+
+      if (emailError) {
+        setError(emailError)
         setLoading(false)
-        return
+        return false
       }
 
-      if (password.length < 8) {
-        setError('Password must be at least 8 characters')
+      if (passwordError) {
+        setError(passwordError)
         setLoading(false)
-        return
+        return false
       }
 
-      if (username.length < 3) {
-        setError('Username must be at least 3 characters')
+      if (usernameError) {
+        setError(usernameError)
         setLoading(false)
-        return
+        return false
       }
 
-      if (username.includes(' ') || !USERNAME_PATTERN.test(username)) {
-        setError('Username can only use letters, numbers, and underscores')
-        setLoading(false)
-        return
-      }
-
-      const result = await signUpWithEmailClient(email, password, username)
+      const result = await signUpWithEmailClient(
+        email.trim(),
+        password,
+        username,
+      )
 
       if (result.error) {
         setError(result.error)
+        toast.error(result.error, { id: 'signup-error' })
         setLoading(false)
-        return
+        return false
       }
 
-      toast.success('Account created — welcome to memeit!', { id: 'signup' })
-      navigate(getSafeAuthRedirect(redirectTo))
+      await signOutClient()
+      reset()
+      toast.success('Account created. Sign in to continue.', {
+        id: 'signup',
+      })
+      navigate(
+        getLoginRoute({
+          mode: 'signin',
+          redirectTo: getSafeAuthRedirect(redirectTo),
+        }),
+        { replace: true },
+      )
       setLoading(false)
+      return true
     },
-    [navigate, setError, setLoading],
+    [navigate, reset, setError, setLoading],
   )
 
   const signOut = useCallback(async (): Promise<void> => {
