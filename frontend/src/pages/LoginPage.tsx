@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useSearchParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../hooks/useAuth'
@@ -8,6 +9,11 @@ import {
   AUTH_REDIRECT_STORAGE_KEY,
   getSafeAuthRedirect,
 } from '../lib/constants'
+import {
+  validateEmail,
+  validatePassword,
+  validateUsername,
+} from '../lib/authValidation'
 
 type Mode = 'signin' | 'signup'
 
@@ -16,9 +22,6 @@ interface FormErrors {
   password?: string
   username?: string
 }
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/
 
 function GoogleIcon() {
   return (
@@ -55,13 +58,12 @@ export default function LoginPage() {
     signInWithGoogle,
     signUpWithEmail,
     loading,
-    error,
     isAuthenticated,
   } = useAuth()
 
-  const [mode, setMode] = useState<Mode>(
-    searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
-  )
+  const requestedMode: Mode =
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
+  const [mode, setMode] = useState<Mode>(requestedMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -71,6 +73,16 @@ export default function LoginPage() {
       ? 'Could not complete sign in. Please try again.'
       : null
   const redirectTo = getSafeAuthRedirect(searchParams.get('redirect'))
+
+  useEffect(() => {
+    setMode(requestedMode)
+  }, [requestedMode])
+
+  useEffect(() => {
+    if (callbackError) {
+      toast.error(callbackError, { id: 'auth-callback-error' })
+    }
+  }, [callbackError])
 
   if (isAuthenticated) {
     return <Navigate to={redirectTo} replace />
@@ -83,20 +95,24 @@ export default function LoginPage() {
 
   function validateSignUpForm(): boolean {
     const nextErrors: FormErrors = {}
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+    const usernameError = validateUsername(username)
 
-    if (!EMAIL_PATTERN.test(email)) {
-      nextErrors.email = 'Enter a valid email address'
-    }
+    if (emailError) nextErrors.email = emailError
+    if (passwordError) nextErrors.password = passwordError
+    if (usernameError) nextErrors.username = usernameError
 
-    if (password.length < 8) {
-      nextErrors.password = 'Password must be at least 8 characters'
-    }
+    setFormErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
 
-    if (username.length < 3) {
-      nextErrors.username = 'Username must be at least 3 characters'
-    } else if (username.includes(' ') || !USERNAME_PATTERN.test(username)) {
-      nextErrors.username = 'Use letters, numbers, and underscores only'
-    }
+  function validateSignInForm(): boolean {
+    const nextErrors: FormErrors = {}
+    const emailError = validateEmail(email)
+
+    if (emailError) nextErrors.email = emailError
+    if (!password) nextErrors.password = 'Enter your password'
 
     setFormErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
@@ -112,8 +128,11 @@ export default function LoginPage() {
     e.preventDefault()
 
     if (mode === 'signin') {
-      setFormErrors({})
-      await signInWithEmail(email, password, redirectTo)
+      if (!validateSignInForm()) {
+        return
+      }
+
+      await signInWithEmail(email.trim(), password, redirectTo)
       return
     }
 
@@ -121,7 +140,19 @@ export default function LoginPage() {
       return
     }
 
-    await signUpWithEmail(email, password, username, redirectTo)
+    const accountCreated = await signUpWithEmail(
+      email.trim(),
+      password,
+      username,
+      redirectTo,
+    )
+
+    if (accountCreated) {
+      setEmail('')
+      setPassword('')
+      setUsername('')
+      setFormErrors({})
+    }
   }
 
   return (
@@ -144,12 +175,6 @@ export default function LoginPage() {
         </div>
 
         <div className="rounded-modal border border-border bg-surface p-8">
-          {(error || callbackError) && (
-            <div className="mb-4 rounded-btn border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {error ?? callbackError}
-            </div>
-          )}
-
           <Button
             variant="secondary"
             fullWidth
