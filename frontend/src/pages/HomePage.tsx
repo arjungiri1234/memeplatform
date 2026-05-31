@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, forwardRef } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { gsap } from 'gsap'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
+import Footer from '../components/Footer'
 import MemeCard, { MemeCardSkeleton } from '../components/MemeCard'
 import { useAuth } from '../hooks/useAuth'
 import { useFeed } from '../hooks/useFeed'
@@ -80,6 +81,33 @@ const CREATE_ACCOUNT_ROUTE = getLoginRoute({
   mode: 'signup',
   redirectTo: ROUTES.CREATE,
 })
+
+const MOBILE_HERO_CARDS = [
+  {
+    caption: 'My brain at 3am.',
+    imageSrc: '/memes/spanish.png',
+    imageAlt: 'Spanish meme',
+    captionBg: '#00e676',
+    captionColor: '#052e1a',
+    rotation: -2,
+  },
+  {
+    caption: 'Nobody asked this',
+    imageSrc: '/memes/donaldtrump.png',
+    imageAlt: 'Donald Trump meme',
+    captionBg: '#111111',
+    captionColor: '#ededed',
+    rotation: 1,
+  },
+  {
+    caption: '\u0939\u094b\u0907\u0928 \u0939\u094b\u0932\u093e \u0915\u093f \u0939\u094b?',
+    imageSrc: '/memes/hoinahola.png',
+    imageAlt: 'Nepali meme',
+    captionBg: '#111111',
+    captionColor: '#ededed',
+    rotation: -1,
+  },
+] as const
 
 const STEPS = [
   {
@@ -213,11 +241,11 @@ function LanguageCard({ card, index }: { card: (typeof LANGUAGE_CARDS)[number]; 
       whileInView={shouldReduceMotion ? {} : { opacity: 1, scale: 1 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="group relative overflow-hidden rounded-xl bg-[#111111] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)]"
+      className="group relative w-[clamp(180px,55vw,240px)] shrink-0 snap-start overflow-hidden rounded-xl bg-[#111111] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] sm:w-auto"
       style={{ border: `1px solid ${card.border}45` }}
     >
       <div className="absolute left-2.5 top-2.5 z-10 rounded bg-black/65 px-2 py-0.5 backdrop-blur-sm">
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/80">
+        <span className="text-[12px] font-extrabold uppercase tracking-widest text-white/80 lg:text-[10px]">
           {card.code}
         </span>
       </div>
@@ -227,11 +255,11 @@ function LanguageCard({ card, index }: { card: (typeof LANGUAGE_CARDS)[number]; 
           label=""
           imageSrc={card.imageSrc}
           imageAlt={card.imageAlt}
-          imageFit="contain"
+          imageFit="cover"
         />
       </div>
       <div className="px-3 pb-3 pt-2.5" style={{ borderTop: `1px solid ${card.border}30` }}>
-        <span className="mb-1 block text-[9px] font-extrabold uppercase tracking-[0.1em] text-white/30">
+        <span className="mb-1 block text-[12px] font-extrabold uppercase tracking-[0.1em] text-white/30 lg:text-[9px]">
           {card.name}
         </span>
         <p className="font-meme text-sm uppercase leading-tight text-white">
@@ -244,7 +272,7 @@ function LanguageCard({ card, index }: { card: (typeof LANGUAGE_CARDS)[number]; 
 
 function MarqueeTile({ item }: { item: (typeof MARQUEE_ITEMS)[number] }) {
   return (
-    <div className="h-44 w-64 shrink-0 overflow-hidden rounded-xl border border-[#1e1e1e] bg-[#111111] transition-all duration-300 hover:scale-[1.04] hover:border-[#00e676]/30 hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+    <div className="h-[140px] w-[clamp(140px,36vw,180px)] shrink-0 overflow-hidden rounded-xl border border-[#1e1e1e] bg-[#111111] transition-all duration-300 hover:border-[#00e676]/30 md:h-[180px] md:w-[clamp(150px,40vw,220px)] md:hover:scale-[1.04] md:hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] lg:h-44 lg:w-64">
       <img
         src={item.src}
         alt={item.alt}
@@ -334,17 +362,24 @@ function LandingPage() {
   // Animation 6 — GSAP infinite marquee (pause on hover)
   useEffect(() => {
     if (shouldReduceMotion || !marqueeRef.current) return
-    const tween = gsap.to(marqueeRef.current, { x: '-50%', duration: 20, ease: 'none', repeat: -1 })
+    const strip = marqueeRef.current
+    const isMobileOrTablet = window.matchMedia('(max-width: 1023px)').matches
+    const tween = gsap.to(strip, {
+      x: isMobileOrTablet ? -(strip.scrollWidth / 2) : '-50%',
+      duration: isMobileOrTablet ? 25 : 20,
+      ease: 'none',
+      repeat: -1,
+    })
     marqueeTweenRef.current = tween
     return () => { tween.kill() }
   }, [shouldReduceMotion])
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0f0f0f] text-[#e5e2e1]">
+    <div className="min-h-screen bg-[#0f0f0f] text-[#e5e2e1]">
 
       {/* ── HERO ─────────────────────────────────────────── */}
-      <section className="relative flex min-h-[calc(100vh-80px)] flex-col items-center gap-12 px-5 pb-16 pt-20 md:flex-row md:px-16">
-        <div className="relative z-10 flex w-full flex-col gap-6 md:w-1/2">
+      <section className="relative flex flex-col items-center gap-0 overflow-x-hidden px-5 pb-8 pt-20 sm:gap-12 sm:overflow-x-visible sm:pb-16 sm:pt-[100px] md:flex-row md:px-16 md:pt-20 lg:min-h-[calc(100vh-80px)]">
+        <div className="relative z-10 flex w-full flex-col gap-4 md:w-1/2 md:gap-6">
 
           {/* Animation 1 — badge */}
           <motion.div
@@ -353,13 +388,13 @@ function LandingPage() {
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut', delay: 0 }}
           >
-            <span className="inline-block text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#00e676]">
+            <span className="inline-block text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#00e676] lg:text-[11px]">
               AI-powered · 5 languages · free
             </span>
           </motion.div>
 
           {/* Animation 1 — headline, each line staggered */}
-          <h1 className="font-display text-[42px] font-bold leading-[1.05] tracking-normal text-white md:text-[64px]">
+          <h1 className="font-display text-[28px] font-bold leading-[1.05] tracking-normal text-white min-[360px]:text-[42px] md:text-[64px]">
             <motion.span className="block"
               initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
               animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
@@ -393,7 +428,7 @@ function LandingPage() {
 
           {/* Animation 1 + 5 — language chips with stagger + hover */}
           <motion.div
-            className="flex flex-wrap gap-2 py-1"
+            className="grid grid-cols-2 gap-2 py-1 min-[360px]:flex min-[360px]:flex-wrap"
             variants={chipContainerVariants}
             initial={shouldReduceMotion ? false : 'hidden'}
             animate={shouldReduceMotion ? {} : 'show'}
@@ -433,7 +468,43 @@ function LandingPage() {
         </div>
 
         {/* Animation 2 — GSAP card stack (refs, no Tailwind rotation) */}
-        <div className="relative z-10 mx-auto h-[520px] w-full max-w-[620px] md:w-1/2">
+        <div className="mx-auto mt-6 flex w-[calc(100%_-_32px)] max-w-[320px] flex-col gap-3 sm:hidden">
+          {MOBILE_HERO_CARDS.map((card, index) => (
+            <motion.article
+              key={card.imageSrc}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 18, rotate: card.rotation }}
+              animate={shouldReduceMotion
+                ? { rotate: card.rotation }
+                : { opacity: 1, y: [0, -6, 0], rotate: card.rotation }
+              }
+              transition={shouldReduceMotion
+                ? {}
+                : {
+                    opacity: { duration: 0.35, delay: 0.2 + index * 0.12 },
+                    y: { duration: 3 + index * 0.35, delay: 0.2 + index * 0.12, repeat: Infinity, ease: 'easeInOut' },
+                  }
+              }
+              className="w-full overflow-hidden rounded-[12px] border-2 border-[#00e676] bg-[#111111] p-2"
+            >
+              <div className="aspect-[16/9]">
+                <PortraitPlaceholder
+                  tint="#172f2b"
+                  label=""
+                  imageSrc={card.imageSrc}
+                  imageAlt={card.imageAlt}
+                />
+              </div>
+              <p
+                className="mt-2 rounded-md border border-black/20 px-2 py-2 text-center font-meme text-xl uppercase leading-none"
+                style={{ backgroundColor: card.captionBg, color: card.captionColor }}
+              >
+                {card.caption}
+              </p>
+            </motion.article>
+          ))}
+        </div>
+
+        <div className="relative z-10 mx-auto hidden h-[420px] w-full max-w-[620px] overflow-hidden sm:block md:h-[520px] md:w-1/2">
           <HeroMemeCard ref={card1Ref}
             caption="My brain at 3am." tint="#172f2b" border="#00e676"
             imageSrc="/memes/spanish.png" imageAlt="Spanish meme"
@@ -450,14 +521,14 @@ function LandingPage() {
             caption="होइन होला कि हो?" tint="#2f2418" border="#00e676"
             imageSrc="/memes/hoinahola.png" imageAlt="Nepali meme"
             captionBg="#111111" captionColor="#ededed"
-            className={`bottom-0 left-[38%] z-20${shouldReduceMotion ? ' -translate-x-1/2' : ''}`}
+            className={`bottom-0 left-[38%] z-20 hidden md:block${shouldReduceMotion ? ' -translate-x-1/2' : ''}`}
           />
         </div>
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────── */}
       {/* Animation 3 — section heading scroll reveal */}
-      <section className="bg-[#0e0e0e] px-5 py-24 md:px-16">
+      <section className="bg-[#0e0e0e] px-5 py-10 md:px-10 md:py-16 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-5xl">
           <motion.div
             className="flex flex-col items-center text-center"
@@ -467,9 +538,9 @@ function LandingPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="mb-3 inline-flex items-center rounded-pill border border-[#00e676]/30 bg-[#00e676]/[0.08] px-4 py-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#00e676]">Simple process</span>
+              <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#00e676] lg:text-[11px]">Simple process</span>
             </div>
-            <h2 className="mb-14 font-display text-3xl font-bold text-white md:text-4xl">Meme in 3 moves.</h2>
+            <h2 className="mb-8 font-display text-3xl font-bold text-white md:mb-14 md:text-4xl">Meme in 3 moves.</h2>
           </motion.div>
 
           {/* Animation 3 — step cards stagger */}
@@ -483,7 +554,7 @@ function LandingPage() {
                 viewport={{ once: true, margin: '-80px' }}
                 transition={{ duration: 0.5, delay: i * 0.15 }}
               >
-                <span className="pointer-events-none absolute right-4 top-1 select-none font-display text-[96px] font-extrabold leading-none text-[#00e676]/[0.06] transition-all duration-500 group-hover:text-[#00e676]/[0.13]">
+                <span className="pointer-events-none absolute right-4 top-1 hidden select-none font-display text-[64px] font-extrabold leading-none text-[#00e676]/[0.06] transition-all duration-500 group-hover:text-[#00e676]/[0.13] sm:block md:text-[96px]">
                   {step.label}
                 </span>
                 <div className="mb-6 h-0.5 w-8 rounded-full bg-[#00e676]" />
@@ -500,7 +571,7 @@ function LandingPage() {
 
       {/* ── LANGUAGE CARDS ───────────────────────────────── */}
       {/* Animation 3 — section heading + card stagger (each card animates in LanguageCard) */}
-      <section className="px-5 py-24 md:px-16">
+      <section className="px-5 py-10 md:px-10 md:py-16 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-6xl">
           <motion.div
             className="flex flex-col items-center text-center"
@@ -510,30 +581,36 @@ function LandingPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="mb-3 inline-flex items-center rounded-pill border border-[#00e676]/30 bg-[#00e676]/[0.08] px-4 py-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#00e676]">5 languages · 1 vibe</span>
+              <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#00e676] lg:text-[11px]">5 languages · 1 vibe</span>
             </div>
-            <h2 className="mb-14 font-display text-3xl font-bold text-white md:text-4xl">Humor has no language barrier.</h2>
+            <h2 className="mb-8 font-display text-3xl font-bold text-white md:mb-14 md:text-4xl">Humor has no language barrier.</h2>
           </motion.div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {LANGUAGE_CARDS.map((card, i) => (
-              <LanguageCard key={card.code} card={card} index={i} />
-            ))}
+          <div className="relative -mx-5 sm:mx-0">
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
+              {LANGUAGE_CARDS.map((card, i) => (
+                <LanguageCard key={card.code} card={card} index={i} />
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-r from-transparent to-[#0a0a0a] sm:hidden" />
           </div>
+          <p className="mt-2 text-center text-[12px] text-[#555555] sm:hidden">
+            &larr; swipe to explore &rarr;
+          </p>
         </div>
       </section>
 
       {/* ── COMMUNITY MARQUEE ────────────────────────────── */}
       {/* Animation 6 — GSAP infinite scroll, pause on hover */}
-      <section className="border-y border-[#1e1e1e] bg-[#0a0a0a] py-20">
+      <section className="border-y border-[#1e1e1e] bg-[#0a0a0a] py-5 md:py-14 lg:py-20">
         <motion.div
-          className="mx-auto mb-12 flex max-w-6xl flex-col items-center px-5 text-center md:px-16"
+          className="mx-auto mb-4 flex max-w-6xl flex-col items-center px-5 text-center md:mb-10 md:px-10 lg:mb-12 lg:px-16"
           initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
           whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.4 }}
         >
           <div className="mb-3 inline-flex items-center rounded-pill border border-[#00e676]/30 bg-[#00e676]/[0.08] px-4 py-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#00e676]">Community</span>
+            <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#00e676] lg:text-[11px]">Community</span>
           </div>
           <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Fresh from the community.</h2>
         </motion.div>
@@ -545,7 +622,7 @@ function LandingPage() {
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-28 bg-gradient-to-r from-[#0a0a0a] to-transparent md:w-48" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-28 bg-gradient-to-l from-[#0a0a0a] to-transparent md:w-48" />
           {/* 2 copies — GSAP animates to -50% for seamless loop */}
-          <div ref={marqueeRef} className="flex w-max gap-4 px-4">
+          <div ref={marqueeRef} className="community-marquee flex w-max gap-3 py-3 lg:gap-4 lg:px-4 lg:py-0">
             {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
               <MarqueeTile key={`${item.src}-${i}`} item={item} />
             ))}
@@ -555,9 +632,9 @@ function LandingPage() {
 
       {/* ── CTA ──────────────────────────────────────────── */}
       {/* Animation 3 — scroll reveal + Animation 5 — button spring */}
-      <section className="px-5 py-24 md:px-16">
+      <section className="px-5 py-1 sm:py-2 md:px-10 md:py-14 lg:px-16 lg:py-24">
         <motion.div
-          className="relative mx-auto flex max-w-5xl flex-col items-center gap-8 overflow-hidden rounded-2xl border border-[#1e1e1e] bg-[#0f0f0f] p-14 text-center md:p-24"
+          className="relative mx-auto flex max-w-5xl flex-col items-center gap-1 overflow-hidden rounded-2xl border border-[#1e1e1e] bg-[#0f0f0f] p-2 text-center sm:gap-2 sm:p-3 md:gap-6 md:p-12 lg:gap-8 lg:p-24"
           initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
           whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
@@ -565,39 +642,33 @@ function LandingPage() {
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,_rgba(0,230,118,0.07)_0%,_transparent_100%)]" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#00e676]/40 to-transparent" />
-          <div className="relative z-10 inline-flex items-center rounded-pill border border-[#00e676]/30 bg-[#00e676]/[0.08] px-4 py-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#00e676]">Free to start</span>
+          <div className="relative z-10 hidden items-center rounded-pill border border-[#00e676]/30 bg-[#00e676]/[0.08] px-4 py-1 sm:inline-flex">
+            <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#00e676] lg:text-[11px]">Free to start</span>
           </div>
-          <h2 className="relative z-10 font-display text-4xl font-bold leading-[1.05] text-white md:text-[56px]">
+          <h2 className="relative z-10 font-display text-base font-bold leading-[1.05] text-white sm:text-3xl md:text-[40px] lg:text-[56px]">
             Your meme is waiting.
           </h2>
-          <p className="relative z-10 max-w-sm text-base leading-[1.75] text-[#a1a1a1]">
+          <p className="relative z-10 hidden max-w-sm text-sm leading-[1.6] text-[#a1a1a1] sm:block md:text-base md:leading-[1.75]">
             Thousands of creators make the internet funnier every day — in every language. Join them.
           </p>
           <motion.div
-            className="relative z-10"
+            className="relative z-10 flex w-full justify-center sm:w-auto"
             whileHover={shouldReduceMotion ? {} : { scale: 1.03 }}
             whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             <Link
               to={CREATE_ACCOUNT_ROUTE}
-              className="inline-flex h-12 items-center justify-center rounded-[6px] border border-[#00e676] bg-[#00e676] px-10 font-bold text-[#052e1a] transition-colors duration-[120ms] hover:bg-[#37f28f] hover:ring-2 hover:ring-[#00e676]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:bg-[#00c965]"
+              className="inline-flex h-10 w-full max-w-[280px] items-center justify-center whitespace-nowrap rounded-[6px] border border-[#00e676] bg-[#00e676] px-6 text-sm font-bold text-[#052e1a] transition-colors duration-[120ms] hover:bg-[#37f28f] hover:ring-2 hover:ring-[#00e676]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:bg-[#00c965] min-[390px]:max-w-[320px] sm:h-12 sm:w-auto sm:max-w-none sm:px-10 sm:text-base"
             >
-              Make your first meme
+              <span className="min-[390px]:hidden">Make a meme now</span>
+              <span className="hidden min-[390px]:inline">Make your first meme</span>
             </Link>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* ── FOOTER ───────────────────────────────────────── */}
-      <footer className="border-t border-[#1e1e1e] bg-[#0a0a0a]">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-8 text-center md:flex-row md:px-16 md:text-left">
-          <span className="font-display text-lg font-bold text-white">meme<span className="text-[#00e676]">it</span></span>
-          <p className="cursor-default text-[12px] text-[#3a3a3a] transition-colors duration-150 hover:text-[#4a4a4a]">© 2025 memeit. All rights reserved.</p>
-          <p className="cursor-default text-[12px] text-[#3a3a3a] transition-colors duration-150 hover:text-[#4a4a4a]">Built for the internet, in every language.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
