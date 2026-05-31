@@ -57,7 +57,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    detectSessionInUrl: false,
+    flowType: 'pkce',
+  },
+})
 
 const DEFAULT_ERROR_MESSAGE = 'Something went wrong, please try again'
 const CONNECTION_ERROR_MESSAGE = 'Check your connection'
@@ -139,6 +144,17 @@ export async function signInWithGoogle(): Promise<void> {
     if (!isUserCancelledOAuth(error)) {
       throw new Error(getErrorMessage(error))
     }
+  }
+}
+
+export async function exchangeAuthCodeForSession(
+  authCode: string,
+): Promise<boolean> {
+  try {
+    const { error } = await supabase.auth.exchangeCodeForSession(authCode)
+    return !error
+  } catch {
+    return false
   }
 }
 
