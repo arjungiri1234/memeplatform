@@ -59,7 +59,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
     flowType: 'pkce',
   },
 })
@@ -144,17 +144,6 @@ export async function signInWithGoogle(): Promise<void> {
     if (!isUserCancelledOAuth(error)) {
       throw new Error(getErrorMessage(error))
     }
-  }
-}
-
-export async function exchangeAuthCodeForSession(
-  authCode: string,
-): Promise<boolean> {
-  try {
-    const { error } = await supabase.auth.exchangeCodeForSession(authCode)
-    return !error
-  } catch {
-    return false
   }
 }
 

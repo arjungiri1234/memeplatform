@@ -6,10 +6,7 @@ import {
   getSafeAuthRedirect,
   ROUTES,
 } from '../lib/constants'
-import {
-  exchangeAuthCodeForSession,
-  getSession,
-} from '../lib/supabaseClient'
+import { getSession } from '../lib/supabaseClient'
 import TopLoadingBar from '../components/TopLoadingBar'
 
 function hasAuthError(): boolean {
@@ -27,22 +24,6 @@ export default function AuthCallbackPage() {
 
     async function finishSignIn() {
       if (hasAuthError()) {
-        navigate(`${ROUTES.LOGIN}?error=auth_failed`, { replace: true })
-        return
-      }
-
-      const authCode = new URLSearchParams(window.location.search).get('code')
-
-      if (!authCode) {
-        navigate(`${ROUTES.LOGIN}?error=auth_failed`, { replace: true })
-        return
-      }
-
-      window.history.replaceState({}, document.title, ROUTES.AUTH_CALLBACK)
-
-      const exchanged = await exchangeAuthCodeForSession(authCode)
-
-      if (!exchanged) {
         navigate(`${ROUTES.LOGIN}?error=auth_failed`, { replace: true })
         return
       }
