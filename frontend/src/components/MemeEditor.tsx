@@ -1,0 +1,512 @@
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
+
+// Converts 0–1 ratio to canvas pixels — used for responsive text placement
+const relX = (ratio: number, w: number) => Math.round(w * ratio)
+const relY = (ratio: number, h: number) => Math.round(h * ratio)
+import Konva from 'konva'
+import { Image, Layer, Rect, Stage, Text, Transformer } from 'react-konva'
+import useImage from 'use-image'
+
+export interface TextObject {
+  id: string
+  text: string
+  x: number
+  y: number
+  fontSize: number
+  fontFamily: string
+  fill: string
+  stroke: string
+  strokeWidth: number
+  opacity: number
+  draggable: true
+}
+
+export type HorizontalPosition = 'left' | 'center' | 'right'
+export type VerticalPosition = 'top' | 'middle' | 'bottom'
+
+export interface MemeEditorHandle {
+  addText: (text: string) => void
+  addSticker: (emoji: string) => void
+  duplicateText: (id: string) => void
+  positionText: (
+    id: string,
+    position: {
+      horizontal?: HorizontalPosition
+      vertical?: VerticalPosition
+    },
+  ) => void
+  updateText: (id: string, changes: Partial<TextObject>) => void
+  deleteText: (id: string) => void
+  exportCanvas: () => string
+  clearTexts: () => void
+}
+
+interface MemeEditorProps {
+  backgroundImage: string | null
+  backgroundColor?: string
+  onExport: (dataUrl: string) => void
+  onSelectionChange?: (selectedText: TextObject | null) => void
+}
+
+const DEFAULT_ASPECT = 4 / 3
+const MIN_WIDTH = 300
+const DEFAULT_BACKGROUND = '#000000'
+const DEFAULT_TEXT = 'ADD YOUR CAPTION'
+
+function createTextObject(text: string, w: number, h: number): TextObject {
+  return {
+    id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    text: text.trim() || DEFAULT_TEXT,
+    x: relX(0.5, w) - 120,
+    y: relY(0.08, h),
+    fontSize: Math.round(w * 0.06),
+    fontFamily: 'Impact',
+    fill: '#ffffff',
+    stroke: '#000000',
+    strokeWidth: 2,
+    opacity: 1,
+    draggable: true,
+  }
+}
+
+function createStickerObject(emoji: string, w: number, h: number): TextObject {
+  return {
+    id: `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    text: emoji,
+    x: relX(0.5, w) - 24,
+    y: relY(0.5, h) - 24,
+    fontSize: Math.round(w * 0.08),
+    fontFamily: 'Arial',
+    fill: '#ffffff',
+    stroke: '#000000',
+    strokeWidth: 0,
+    opacity: 1,
+    draggable: true,
+  }
+}
+
+const MemeEditor = forwardRef<MemeEditorHandle, MemeEditorProps>(
+  (
+    {
+      backgroundImage,
+      backgroundColor = DEFAULT_BACKGROUND,
+      onExport,
+      onSelectionChange,
+    },
+    ref,
+  ) => {
+    const [texts, setTexts] = useState<TextObject[]>([])
+    const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [bgColor, setBgColor] = useState(backgroundColor)
+    const [canvasWidth, setCanvasWidth] = useState(600)
+    const [canvasHeight, setCanvasHeight] = useState(Math.round(600 / DEFAULT_ASPECT))
+    const wrapperRef = useRef<HTMLDivElement>(null)
+    const stageRef = useRef<Konva.Stage | null>(null)
+    const transformerRef = useRef<Konva.Transformer | null>(null)
+    const uiLayerRef = useRef<Konva.Layer | null>(null)
+    const textNodeRefs = useRef<Record<string, Konva.Text | null>>({})
+    const editingTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+    const [loadedBgImage] = useImage(backgroundImage ?? '', 'anonymous')
+    const bgImage = loadedBgImage ?? null
+
+    // Resize canvas to fill container and match image aspect ratio — no letterboxing
+    const updateCanvasSize = useCallback(() => {
+      const wrapper = wrapperRef.current
+      if (!wrapper) return
+      const w = Math.max(wrapper.offsetWidth, MIN_WIDTH)
+      const aspect = bgImage
+        ? bgImage.width / bgImage.height
+        : DEFAULT_ASPECT
+      setCanvasWidth(w)
+      setCanvasHeight(Math.round(w / aspect))
+    }, [bgImage])
+
+    useEffect(() => { updateCanvasSize() }, [updateCanvasSize])
+
+    useEffect(() => {
+      const wrapper = wrapperRef.current
+      if (!wrapper) return
+      const observer = new ResizeObserver(updateCanvasSize)
+      observer.observe(wrapper)
+      return () => observer.disconnect()
+    }, [updateCanvasSize])
+
+    // Image fills canvas exactly (aspect ratios match after resize)
+    const imageFit = bgImage
+      ? { x: 0, y: 0, width: canvasWidth, height: canvasHeight }
+      : null
+
+    useEffect(() => {
+      setBgColor(backgroundColor)
+    }, [backgroundColor])
+
+    useEffect(() => {
+      const selectedText = selectedId
+        ? texts.find((text) => text.id === selectedId) ?? null
+        : null
+
+      onSelectionChange?.(selectedText)
+    }, [onSelectionChange, selectedId, texts])
+
+    useEffect(() => {
+      const selectedNode = selectedId ? textNodeRefs.current[selectedId] : null
+
+      if (selectedNode && transformerRef.current) {
+        transformerRef.current.nodes([selectedNode])
+      } else {
+        transformerRef.current?.nodes([])
+      }
+
+      transformerRef.current?.getLayer()?.batchDraw()
+    }, [selectedId, texts])
+
+    useEffect(() => {
+      return () => {
+        editingTextareaRef.current?.remove()
+      }
+    }, [])
+
+    const updateText = useCallback((id: string, updates: Partial<TextObject>) => {
+      setTexts((currentTexts) =>
+        currentTexts.map((text) =>
+          text.id === id ? { ...text, ...updates } : text,
+        ),
+      )
+    }, [])
+
+    useImperativeHandle(ref, () => ({
+      addText: (text: string) => {
+        const nextText = createTextObject(text, canvasWidth, canvasHeight)
+        setTexts((currentTexts) => [...currentTexts, nextText])
+        setSelectedId(nextText.id)
+      },
+      addSticker: (emoji: string) => {
+        const nextSticker = createStickerObject(emoji, canvasWidth, canvasHeight)
+        setTexts((currentTexts) => [...currentTexts, nextSticker])
+        setSelectedId(nextSticker.id)
+      },
+      duplicateText: (id: string) => {
+        const sourceText = texts.find((text) => text.id === id)
+
+        if (!sourceText) {
+          return
+        }
+
+        const duplicate = {
+          ...sourceText,
+          id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          x: sourceText.x + 16,
+          y: sourceText.y + 16,
+        }
+
+        setTexts((currentTexts) => [...currentTexts, duplicate])
+        setSelectedId(duplicate.id)
+      },
+      positionText: (id, position) => {
+        const node = textNodeRefs.current[id]
+        const nodeWidth = node?.width() ?? 240
+        const nodeHeight = node?.height() ?? 48
+        const edgePadding = 24
+
+        setTexts((currentTexts) =>
+          currentTexts.map((text) => {
+            if (text.id !== id) {
+              return text
+            }
+
+            let x = text.x
+            let y = text.y
+
+            if (position.horizontal === 'left') {
+              x = edgePadding
+            } else if (position.horizontal === 'center') {
+              x = Math.max(0, (canvasWidth - nodeWidth) / 2)
+            } else if (position.horizontal === 'right') {
+              x = Math.max(0, canvasWidth - nodeWidth - edgePadding)
+            }
+
+            if (position.vertical === 'top') {
+              y = edgePadding
+            } else if (position.vertical === 'middle') {
+              y = Math.max(0, (canvasHeight - nodeHeight) / 2)
+            } else if (position.vertical === 'bottom') {
+              y = Math.max(0, canvasHeight - nodeHeight - edgePadding)
+            }
+
+            return { ...text, x, y }
+          }),
+        )
+      },
+      updateText: (id: string, changes: Partial<TextObject>) => {
+        updateText(id, changes)
+      },
+      deleteText: (id: string) => {
+        setTexts((currentTexts) => currentTexts.filter((text) => text.id !== id))
+        setSelectedId((currentSelectedId) =>
+          currentSelectedId === id ? null : currentSelectedId,
+        )
+      },
+      exportCanvas: () => {
+        setSelectedId(null)
+        uiLayerRef.current?.hide()
+        const dataUrl = stageRef.current?.toDataURL({ pixelRatio: 2 }) ?? ''
+        uiLayerRef.current?.show()
+        onExport(dataUrl)
+
+        return dataUrl
+      },
+      clearTexts: () => {
+        setTexts([])
+        setSelectedId(null)
+      },
+    }), [canvasHeight, canvasWidth, onExport, texts, updateText])
+
+    const handleStagePointerDown = (
+      event: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+    ) => {
+      const clickedEmptyCanvas =
+        event.target === event.target.getStage() ||
+        event.target.name() === 'canvas-background'
+
+      if (clickedEmptyCanvas) {
+        setSelectedId(null)
+      }
+    }
+
+    const handleTextTransformEnd = (id: string) => {
+      const node = textNodeRefs.current[id]
+
+      if (!node) {
+        return
+      }
+
+      const scaleY = node.scaleY()
+      const nextFontSize = Math.max(12, Math.round(node.fontSize() * scaleY))
+
+      node.scaleX(1)
+      node.scaleY(1)
+      updateText(id, {
+        x: node.x(),
+        y: node.y(),
+        fontSize: nextFontSize,
+      })
+    }
+
+    const handleTextDoubleClick = (id: string) => {
+      const stage = stageRef.current
+      const node = textNodeRefs.current[id]
+
+      if (!stage || !node || editingTextareaRef.current) {
+        return
+      }
+
+      const containerRect = stage.container().getBoundingClientRect()
+      const textPosition = node.absolutePosition()
+
+      // Mirror span measures real text width so the textarea grows to fit content
+      const mirror = document.createElement('span')
+      mirror.style.cssText = [
+        'position:fixed',
+        'visibility:hidden',
+        'pointer-events:none',
+        'white-space:pre',
+        `font-size:${node.fontSize()}px`,
+        `font-family:${node.fontFamily()}`,
+        `line-height:${String(node.lineHeight())}`,
+        'padding:4px 8px',
+      ].join(';')
+      document.body.appendChild(mirror)
+
+      const textarea = document.createElement('textarea')
+      editingTextareaRef.current = textarea
+
+      node.hide()
+      transformerRef.current?.hide()
+      node.getLayer()?.batchDraw()
+
+      // Max width: from text x position to the right edge of the stage
+      const maxWidth = Math.max(containerRect.width - textPosition.x - 8, 200)
+
+      textarea.value = node.text()
+      textarea.style.position = 'fixed'
+      textarea.style.top = `${containerRect.top + textPosition.y}px`
+      textarea.style.left = `${containerRect.left + textPosition.x}px`
+      textarea.style.minWidth = '160px'
+      textarea.style.maxWidth = `${maxWidth}px`
+      textarea.style.minHeight = '44px'
+      textarea.style.border = '2px solid #7c3aed'
+      textarea.style.borderRadius = '6px'
+      textarea.style.padding = '4px 8px'
+      textarea.style.margin = '0'
+      textarea.style.overflow = 'hidden'
+      textarea.style.background = 'rgba(17,17,17,0.92)'
+      textarea.style.color = node.fill().toString()
+      textarea.style.fontSize = `${node.fontSize()}px`
+      textarea.style.fontFamily = node.fontFamily()
+      textarea.style.lineHeight = String(node.lineHeight())
+      textarea.style.outline = 'none'
+      textarea.style.resize = 'none'
+      textarea.style.zIndex = '1000'
+      textarea.style.whiteSpace = 'pre-wrap'
+      textarea.style.wordBreak = 'break-word'
+      textarea.style.boxSizing = 'border-box'
+
+      const autoResize = () => {
+        // Measure text width using mirror so box grows with typing
+        mirror.textContent = textarea.value || ' '
+        const measuredWidth = Math.min(mirror.offsetWidth + 18, maxWidth)
+        textarea.style.width = `${Math.max(measuredWidth, 160)}px`
+        // Grow height to show all lines
+        textarea.style.height = 'auto'
+        textarea.style.height = `${textarea.scrollHeight}px`
+      }
+
+      textarea.addEventListener('input', autoResize)
+      autoResize()
+
+      let isEditingFinished = false
+
+      const finishEditing = (shouldSave: boolean) => {
+        if (isEditingFinished) return
+        isEditingFinished = true
+
+        if (shouldSave) {
+          updateText(id, { text: textarea.value.trim() || DEFAULT_TEXT })
+        }
+
+        textarea.remove()
+        mirror.remove()
+        editingTextareaRef.current = null
+        node.show()
+        transformerRef.current?.show()
+        node.getLayer()?.batchDraw()
+      }
+
+      textarea.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault()
+          finishEditing(true)
+        }
+
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          finishEditing(false)
+        }
+      })
+
+      textarea.addEventListener('blur', () => finishEditing(true))
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+    }
+
+    return (
+      <div ref={wrapperRef} className="w-full">
+      <Stage
+        ref={stageRef}
+        width={canvasWidth}
+        height={canvasHeight}
+        onMouseDown={handleStagePointerDown}
+        onTouchStart={handleStagePointerDown}
+        className="overflow-hidden rounded-[10px] bg-[#000000]"
+      >
+        <Layer>
+          <Rect
+            name="canvas-background"
+            x={0}
+            y={0}
+            width={canvasWidth}
+            height={canvasHeight}
+            fill={bgColor}
+          />
+          {bgImage && imageFit ? (
+            <Image
+              name="canvas-background"
+              image={bgImage}
+              x={imageFit.x}
+              y={imageFit.y}
+              width={imageFit.width}
+              height={imageFit.height}
+            />
+          ) : null}
+        </Layer>
+
+        <Layer>
+          {texts.map((text) => (
+            <Text
+              key={text.id}
+              ref={(node) => {
+                textNodeRefs.current[text.id] = node
+              }}
+              text={text.text}
+              x={text.x}
+              y={text.y}
+              fontSize={text.fontSize}
+              fontFamily={text.fontFamily}
+              fill={text.fill}
+              stroke={text.stroke}
+              strokeWidth={text.strokeWidth}
+              opacity={text.opacity}
+              draggable={text.draggable}
+              onClick={() => {
+                if (selectedId === text.id) {
+                  handleTextDoubleClick(text.id)
+                } else {
+                  setSelectedId(text.id)
+                }
+              }}
+              onTap={() => {
+                if (selectedId === text.id) {
+                  handleTextDoubleClick(text.id)
+                } else {
+                  setSelectedId(text.id)
+                }
+              }}
+              onDblClick={() => handleTextDoubleClick(text.id)}
+              onDblTap={() => handleTextDoubleClick(text.id)}
+              onDragEnd={(event) => {
+                updateText(text.id, {
+                  x: event.target.x(),
+                  y: event.target.y(),
+                })
+              }}
+              onTransformEnd={() => handleTextTransformEnd(text.id)}
+            />
+          ))}
+        </Layer>
+
+        <Layer ref={uiLayerRef}>
+          <Transformer
+            ref={transformerRef}
+            rotateEnabled={false}
+            enabledAnchors={[
+              'top-left',
+              'top-right',
+              'bottom-left',
+              'bottom-right',
+            ]}
+            boundBoxFunc={(oldBox, newBox) => {
+              if (newBox.width < 40 || newBox.height < 20) {
+                return oldBox
+              }
+
+              return newBox
+            }}
+          />
+        </Layer>
+      </Stage>
+      </div>
+    )
+  },
+)
+
+MemeEditor.displayName = 'MemeEditor'
+
+export default MemeEditor
