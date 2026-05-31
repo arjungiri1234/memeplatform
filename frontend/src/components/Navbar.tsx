@@ -24,9 +24,15 @@ export default function Navbar() {
   const { t } = useTranslation()
   const { profile, loading, isAuthenticated, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const shouldReduceMotion = useReducedMotion() ?? false
+
+  useEffect(() => {
+    document.body.style.removeProperty('overflow')
+    document.documentElement.style.removeProperty('overflow')
+  }, [])
 
   useEffect(() => {
     if (shouldReduceMotion) return
@@ -55,14 +61,31 @@ export default function Navbar() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [mobileMenuOpen])
+
   async function handleSignOut() {
     setIsMenuOpen(false)
     await signOut()
   }
 
   return (
+    <>
     <motion.header
-      className={`sticky top-0 z-50 h-16 border-b ${scrolled ? 'backdrop-blur-[12px]' : ''}`}
+      className={`sticky top-0 z-50 h-16 border-b pt-[env(safe-area-inset-top)] ${scrolled ? 'backdrop-blur-[12px]' : ''}`}
       animate={shouldReduceMotion
         ? { backgroundColor: '#0a0a0a', borderBottomColor: '#1e1e1e' }
         : {
@@ -85,7 +108,7 @@ export default function Navbar() {
           />
         </Link>
 
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 sm:flex" aria-label="Main navigation">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 md:flex" aria-label="Main navigation">
           {NAV_LINKS.filter((link) => !link.requiresAuth || isAuthenticated).map(({ href, labelKey }) => {
             const isActive = pathname === href
 
@@ -161,20 +184,93 @@ export default function Navbar() {
             <>
               <Link
                 to={ROUTES.LOGIN}
-                className="hidden h-10 items-center rounded-btn border border-[#2a2a2a] bg-transparent px-5 text-[13px] font-semibold text-[#a1a1a1] transition-all duration-[120ms] hover:border-[#00e676]/60 hover:bg-[#00e676]/10 hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:bg-[#00e676]/15 sm:inline-flex"
+                className="hidden h-10 items-center rounded-btn border border-[#2a2a2a] bg-transparent px-5 text-[13px] font-semibold text-[#a1a1a1] transition-all duration-[120ms] hover:border-[#00e676]/60 hover:bg-[#00e676]/10 hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:bg-[#00e676]/15 md:inline-flex"
               >
                 Sign in
               </Link>
               <Link
                 to={getLoginRoute({ mode: 'signup', redirectTo: ROUTES.CREATE })}
-                className="inline-flex h-10 items-center rounded-btn border border-[#00e676] bg-[#00c96b] px-5 text-[13px] font-semibold text-[#052e1a] transition-all duration-[120ms] hover:-translate-y-0.5 hover:bg-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] active:translate-y-0 active:bg-[#00b85f]"
+                className="hidden h-10 items-center rounded-btn border border-[#00e676] bg-[#00c96b] px-5 text-[13px] font-semibold text-[#052e1a] transition-all duration-[120ms] hover:-translate-y-0.5 hover:bg-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] active:translate-y-0 active:bg-[#00b85f] md:inline-flex"
               >
                 Get Started
               </Link>
             </>
           )}
+          <button
+            type="button"
+            aria-label="Open navigation menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-btn text-xl text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] md:hidden"
+          >
+            ☰
+          </button>
         </div>
       </div>
     </motion.header>
+
+    {mobileMenuOpen ? (
+      <div
+        className="fixed inset-0 z-[60] bg-black/60 md:hidden"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            setMobileMenuOpen(false)
+          }
+        }}
+      >
+        <motion.aside
+          aria-label="Mobile navigation"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="ml-auto flex h-full w-[280px] flex-col border-l border-[#2a2a2a] bg-[#111111] p-4"
+        >
+          <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-4">
+            <span className="font-display text-base font-semibold text-[#ededed]">
+              Menu
+            </span>
+            <button
+              type="button"
+              aria-label="Close navigation menu"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex h-11 w-11 items-center justify-center rounded-btn text-xl text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#1a1a1a] hover:text-[#ededed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676]"
+            >
+              ×
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-1 py-4" aria-label="Mobile navigation links">
+            <Link
+              to={ROUTES.CREATE}
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex min-h-11 items-center rounded-btn px-3 text-sm font-medium text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#00e676]/10 hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676]"
+            >
+              Create
+            </Link>
+
+            {!isAuthenticated ? (
+              <>
+                <div className="my-3 h-px bg-[#2a2a2a]" />
+                <Link
+                  to={ROUTES.LOGIN}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex min-h-11 items-center rounded-btn px-3 text-sm font-medium text-[#a1a1a1] transition-colors duration-[120ms] hover:bg-[#00e676]/10 hover:text-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676]"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to={getLoginRoute({ mode: 'signup', redirectTo: ROUTES.CREATE })}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mt-2 flex min-h-11 items-center justify-center rounded-btn border border-[#00e676] bg-[#00c96b] px-4 text-sm font-semibold text-[#052e1a] transition-all duration-[120ms] hover:-translate-y-0.5 hover:bg-[#00e676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e676] active:translate-y-0 active:bg-[#00b85f]"
+                >
+                  Get Started
+                </Link>
+              </>
+            ) : null}
+          </nav>
+        </motion.aside>
+      </div>
+    ) : null}
+    </>
   )
 }
