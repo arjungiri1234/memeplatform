@@ -3,6 +3,17 @@
 > A multilingual AI meme generator and social feed platform.
 > Create, share, and discover memes in English, नेपाली, हिन्दी, Русский, and 中文.
 
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-2-3ECF8E?style=flat&logo=supabase&logoColor=white)
+![Deno](https://img.shields.io/badge/Deno-1-000000?style=flat&logo=deno&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-4285F4?style=flat&logo=google&logoColor=white)
+![Konva](https://img.shields.io/badge/Konva.js-Canvas-FF6B6B?style=flat&logoColor=white)
+![Framer](https://img.shields.io/badge/Framer_Motion-10-0055FF?style=flat&logo=framer&logoColor=white)
+
+
 
 ---
 
@@ -413,6 +424,8 @@ Language preference saved to `profiles.locale` for logged-in users and `localSto
 Built by **[Arjun Giri]** 
 
 - GitHub: [@arjungiri1234](https://github.com/arjungiri1234) 
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=flat&logo=vercel)](https://memeplatform-frontend.vercel.app/)
 
 
 ---
